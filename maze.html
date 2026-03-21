@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>迷路ジェネレーター ランダムS/G なぞる版</title>
+  <style>
+    :root {
+      --bg: #f7f7fb;
+      --card: #ffffff;
+      --line: #222;
+      --accent: #2f6fed;
+      --text: #222;
+      --muted: #666;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 28px;
+    }
+
+    .panel,
+    .canvas-wrap {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input,
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid #d7d7e0;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #555;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .canvas-wrap {
+      overflow: auto;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+      max-width: 100%;
+      height: auto;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .note,
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status {
+      font-weight: 700;
+      color: #1f4dbd;
+    }
+
+    @media (max-width: 800px) {
+      .controls {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .controls,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>迷路ジェネレーター ランダムS/G</h1>
+
+    <div class="panel">
+      <div class="controls">
+        <div>
+          <label for="rows">行数</label>
+          <input id="rows" type="number" min="5" max="40" value="12">
+        </div>
+        <div>
+          <label for="cols">列数</label>
+          <input id="cols" type="number" min="5" max="40" value="12">
+        </div>
+        <div>
+          <label for="cellSize">セルサイズ</label>
+          <input id="cellSize" type="number" min="20" max="60" value="30">
+        </div>
+        <div>
+          <label for="lineWidth">線の太さ</label>
+          <input id="lineWidth" type="number" min="1" max="8" value="3">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="generateBtn">迷路再生成</button>
+        <button id="resetTraceBtn" class="secondary">なぞり直し</button>
+        <button id="downloadBtn" class="secondary">PNG保存</button>
+      </div>
+
+      <div class="note">
+        緑の丸から指でなぞって、赤の丸を目指してください。スタートとゴールは毎回ランダムです。
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="mazeCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("mazeCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const rowsInput = document.getElementById("rows");
+    const colsInput = document.getElementById("cols");
+    const cellSizeInput = document.getElementById("cellSize");
+    const lineWidthInput = document.getElementById("lineWidth");
+
+    const generateBtn = document.getElementById("generateBtn");
+    const resetTraceBtn = document.getElementById("resetTraceBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const statusEl = document.getElementById("status");
+
+    let maze = null;
+    let rows = 12;
+    let cols = 12;
+    let cellSize = 30;
+    let wallLineWidth = 3;
+
+    let startCell = { r: 0, c: 0 };
+    let goalCell = { r: 0, c: 0 };
+    let player = { r: 0, c: 0 };
+    let tracePoints = [];
+    let isDrawing = false;
+    let cleared = false;
+
+    function rand(max) {
+      return Math.floor(Math.random() * max);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = rand(i + 1);
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function createGrid(rows, cols) {
+      return Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => ({
+          visited: false,
+          walls: { top: true, right: true, bottom: true, left: true }
+        }))
+      );
+    }
+
+    function randomBorderDirection(r, c, rows, cols) {
+      const dirs = [];
+      if (r === 0) dirs.push("top");
+      if (c === cols - 1) dirs.push("right");
+      if (r === rows - 1) dirs.push("bottom");
+      if (c === 0) dirs.push("left");
+      return dirs[rand(dirs.length)];
+    }
+
+    function randomBorderCell(rows, cols) {
+      const side = rand(4);
+
+      if (side === 0) return { r: 0, c: rand(cols) };
+      if (side === 1) return { r: rand(rows), c: cols - 1 };
+      if (side === 2) return { r: rows - 1, c: rand(cols) };
+      return { r: rand(rows), c: 0 };
+    }
+
+    function generateMaze(rows, cols) {
+      const grid = createGrid(rows, cols);
+      const stack = [];
+
+      grid[0][0].visited = true;
+      stack.push({ r: 0, c: 0 });
+
+      while (stack.length) {
+        const current = stack[stack.length - 1];
+        const { r, c } = current;
+        const neighbors = [];
+
+        if (r > 0 && !grid[r - 1][c].visited) {
+          neighbors.push({ r: r - 1, c, dir: "top" });
+        }
+        if (c < cols - 1 && !grid[r][c + 1].visited) {
+          neighbors.push({ r, c: c + 1, dir: "right" });
+        }
+        if (r < rows - 1 && !grid[r + 1][c].visited) {
+          neighbors.push({ r: r + 1, c, dir: "bottom" });
+        }
+        if (c > 0 && !grid[r][c - 1].visited) {
+          neighbors.push({ r, c: c - 1, dir: "left" });
+        }
+
+        if (neighbors.length > 0) {
+          const next = shuffle(neighbors)[0];
+
+          if (next.dir === "top") {
+            grid[r][c].walls.top = false;
+            grid[next.r][next.c].walls.bottom = false;
+          } else if (next.dir === "right") {
+            grid[r][c].walls.right = false;
+            grid[next.r][next.c].walls.left = false;
+          } else if (next.dir === "bottom") {
+            grid[r][c].walls.bottom = false;
+            grid[next.r][next.c].walls.top = false;
+          } else if (next.dir === "left") {
+            grid[r][c].walls.left = false;
+            grid[next.r][next.c].walls.right = false;
+          }
+
+          grid[next.r][next.c].visited = true;
+          stack.push({ r: next.r, c: next.c });
+        } else {
+          stack.pop();
+        }
+      }
+
+      startCell = randomBorderCell(rows, cols);
+      goalCell = randomBorderCell(rows, cols);
+
+      while (startCell.r === goalCell.r && startCell.c === goalCell.c) {
+        goalCell = randomBorderCell(rows, cols);
+      }
+
+      const startDir = randomBorderDirection(startCell.r, startCell.c, rows, cols);
+      const goalDir = randomBorderDirection(goalCell.r, goalCell.c, rows, cols);
+
+      grid[startCell.r][startCell.c].walls[startDir] = false;
+      grid[goalCell.r][goalCell.c].walls[goalDir] = false;
+
+      return grid;
+    }
+
+    function cellCenter(r, c) {
+      return {
+        x: c * cellSize + cellSize / 2 + wallLineWidth / 2,
+        y: r * cellSize + cellSize / 2 + wallLineWidth / 2
+      };
+    }
+
+    function resetTrace() {
+      player = { ...startCell };
+      tracePoints = [cellCenter(player.r, player.c)];
+      isDrawing = false;
+      cleared = false;
+      statusEl.textContent = "";
+      redraw();
+    }
+
+    function drawMaze() {
+      const width = cols * cellSize;
+      const height = rows * cellSize;
+
+      canvas.width = width + wallLineWidth;
+      canvas.height = height + wallLineWidth;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = wallLineWidth;
+      ctx.lineCap = "square";
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = maze[r][c];
+          const x = c * cellSize + wallLineWidth / 2;
+          const y = r * cellSize + wallLineWidth / 2;
+
+          if (cell.walls.top) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + cellSize, y);
+            ctx.stroke();
+          }
+          if (cell.walls.right) {
+            ctx.beginPath();
+            ctx.moveTo(x + cellSize, y);
+            ctx.lineTo(x + cellSize, y + cellSize);
+            ctx.stroke();
+          }
+          if (cell.walls.bottom) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + cellSize);
+            ctx.lineTo(x + cellSize, y + cellSize);
+            ctx.stroke();
+          }
+          if (cell.walls.left) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + cellSize);
+            ctx.stroke();
+          }
+        }
+      }
+
+      const startPos = cellCenter(startCell.r, startCell.c);
+      const goalPos = cellCenter(goalCell.r, goalCell.c);
+
+      ctx.fillStyle = "#2ecc71";
+      ctx.beginPath();
+      ctx.arc(startPos.x, startPos.y, Math.max(8, cellSize * 0.22), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#e74c3c";
+      ctx.beginPath();
+      ctx.arc(goalPos.x, goalPos.y, Math.max(8, cellSize * 0.22), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawTrace() {
+      if (tracePoints.length < 1) return;
+
+      ctx.strokeStyle = "#1f77ff";
+      ctx.lineWidth = Math.max(4, cellSize * 0.22);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(tracePoints[0].x, tracePoints[0].y);
+
+      for (let i = 1; i < tracePoints.length; i++) {
+        ctx.lineTo(tracePoints[i].x, tracePoints[i].y);
+      }
+      ctx.stroke();
+
+      const current = tracePoints[tracePoints.length - 1];
+      ctx.fillStyle = "#0b57d0";
+      ctx.beginPath();
+      ctx.arc(current.x, current.y, Math.max(6, cellSize * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function redraw() {
+      drawMaze();
+      drawTrace();
+    }
+
+    function getEventPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function posToCell(pos) {
+      const c = Math.floor((pos.x - wallLineWidth / 2) / cellSize);
+      const r = Math.floor((pos.y - wallLineWidth / 2) / cellSize);
+
+      if (r < 0 || c < 0 || r >= rows || c >= cols) {
+        return null;
+      }
+
+      return { r, c };
+    }
+
+    function isAdjacent(a, b) {
+      const dr = Math.abs(a.r - b.r);
+      const dc = Math.abs(a.c - b.c);
+      return dr + dc === 1;
+    }
+
+    function canMove(from, to) {
+      if (!isAdjacent(from, to)) return false;
+
+      if (to.r === from.r - 1) return !maze[from.r][from.c].walls.top;
+      if (to.c === from.c + 1) return !maze[from.r][from.c].walls.right;
+      if (to.r === from.r + 1) return !maze[from.r][from.c].walls.bottom;
+      if (to.c === from.c - 1) return !maze[from.r][from.c].walls.left;
+
+      return false;
+    }
+
+    function tryMoveToCell(target) {
+      if (!target || cleared) return;
+      if (target.r === player.r && target.c === player.c) return;
+
+      if (canMove(player, target)) {
+        player = target;
+        tracePoints.push(cellCenter(player.r, player.c));
+        redraw();
+
+        if (player.r === goalCell.r && player.c === goalCell.c) {
+          cleared = true;
+          statusEl.textContent = "ゴール！おめでとう！";
+        }
+      }
+    }
+
+    function handlePointerDown(e) {
+      e.preventDefault();
+      const pos = getEventPos(e);
+      const cell = posToCell(pos);
+      if (!cell) return;
+
+      if (cell.r === player.r && cell.c === player.c) {
+        isDrawing = true;
+        if (canvas.setPointerCapture) {
+          canvas.setPointerCapture(e.pointerId);
+        }
+      }
+    }
+
+    function handlePointerMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getEventPos(e);
+      const cell = posToCell(pos);
+      tryMoveToCell(cell);
+    }
+
+    function handlePointerUp(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      isDrawing = false;
+      if (canvas.releasePointerCapture) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    }
+
+    function build() {
+      rows = Math.max(5, Math.min(40, parseInt(rowsInput.value, 10) || 12));
+      cols = Math.max(5, Math.min(40, parseInt(colsInput.value, 10) || 12));
+      cellSize = Math.max(20, Math.min(60, parseInt(cellSizeInput.value, 10) || 30));
+      wallLineWidth = Math.max(1, Math.min(8, parseInt(lineWidthInput.value, 10) || 3));
+
+      rowsInput.value = rows;
+      colsInput.value = cols;
+      cellSizeInput.value = cellSize;
+      lineWidthInput.value = wallLineWidth;
+
+      maze = generateMaze(rows, cols);
+      resetTrace();
+    }
+
+    function downloadPng() {
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `maze-${Date.now()}.png`;
+      link.click();
+    }
+
+    generateBtn.addEventListener("click", build);
+    resetTraceBtn.addEventListener("click", resetTrace);
+    downloadBtn.addEventListener("click", downloadPng);
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+    canvas.addEventListener("pointerleave", handlePointerUp);
+
+    build();
+  </script>
+</body>
+</html>
