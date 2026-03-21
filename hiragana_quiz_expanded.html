@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ひらがなくいず</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Hiragino Maru Gothic ProN', 'BIZ UDPGothic', sans-serif;
+    background: linear-gradient(135deg, #fff9c4 0%, #b3e5fc 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .app {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    text-align: center;
+  }
+  h1 {
+    color: #ef6c00;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    letter-spacing: .08em;
+  }
+  .sub {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 18px;
+  }
+  .score {
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 14px;
+  }
+  .category {
+    display: inline-block;
+    background: #ffe082;
+    color: #6d4c41;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    margin-bottom: 14px;
+    font-weight: bold;
+  }
+  .question {
+    font-size: 1.35rem;
+    color: #333;
+    margin-bottom: 16px;
+    font-weight: bold;
+  }
+  .visual {
+    font-size: 5.8rem;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .btn {
+    border: none;
+    border-radius: 18px;
+    padding: 18px 10px;
+    font-size: 1.45rem;
+    font-family: inherit;
+    color: #fff;
+    background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+    box-shadow: 0 4px 0 #0288d1;
+    cursor: pointer;
+    transition: transform .1s ease, box-shadow .1s ease;
+    letter-spacing: .05em;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0288d1; }
+  .btn.correct {
+    background: linear-gradient(135deg, #81c784, #4caf50);
+    box-shadow: 0 4px 0 #2e7d32;
+  }
+  .btn.wrong {
+    background: linear-gradient(135deg, #ef9a9a, #e57373);
+    box-shadow: 0 4px 0 #c62828;
+  }
+  .feedback {
+    min-height: 2.2em;
+    margin-top: 14px;
+    font-size: 1.4rem;
+    font-weight: bold;
+  }
+  .next, .restart {
+    margin-top: 14px;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 30px;
+    font-size: 1.15rem;
+    font-family: inherit;
+    color: #fff;
+    background: linear-gradient(135deg, #ffb74d, #fb8c00);
+    box-shadow: 0 4px 0 #ef6c00;
+    cursor: pointer;
+  }
+  .restart {
+    background: linear-gradient(135deg, #ba68c8, #8e24aa);
+    box-shadow: 0 4px 0 #6a1b9a;
+  }
+  .hidden { display: none; }
+  .result h2 {
+    color: #ef6c00;
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  .result p {
+    color: #555;
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>ひらがなくいず</h1>
+  <div class="sub">どうぶつ・のりもの・みのまわりのもの・しごと・たてもの</div>
+  <div id="playArea">
+    <div class="score">もんだい <span id="qNum">1</span> / <span id="qTotal">12</span>　せいかい <span id="correctCount">0</span></div>
+    <div class="category" id="category"></div>
+    <div class="question">これは なにかな？</div>
+    <div class="visual" id="visual"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next hidden" id="nextBtn">つぎへ</button>
+  </div>
+  <div class="result hidden" id="resultArea">
+    <h2 id="resultFace"></h2>
+    <h2>おしまい</h2>
+    <p id="resultText"></p>
+    <button class="restart" id="restartBtn">もういちど あそぶ</button>
+  </div>
+</div>
+
+<script>
+const items = [
+  { category: "どうぶつ", emoji: "🐶", name: "いぬ", wrong: ["くるま", "りんご", "いえ"] },
+  { category: "どうぶつ", emoji: "🐱", name: "ねこ", wrong: ["ばす", "ぱん", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐭", name: "ねずみ", wrong: ["ぼーる", "でんしゃ", "ほん"] },
+  { category: "どうぶつ", emoji: "🐹", name: "はむすたー", wrong: ["かさ", "くるま", "りんご"] },
+  { category: "どうぶつ", emoji: "🐰", name: "うさぎ", wrong: ["えんぴつ", "ばす", "いえ"] },
+  { category: "どうぶつ", emoji: "🦊", name: "きつね", wrong: ["ぱん", "ふね", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐻", name: "くま", wrong: ["ほん", "じてんしゃ", "こんびに"] },
+  { category: "どうぶつ", emoji: "🐼", name: "ぱんだ", wrong: ["かばん", "でんしゃ", "びょういん"] },
+  { category: "どうぶつ", emoji: "🐨", name: "こあら", wrong: ["ぼうし", "くるま", "いえ"] },
+  { category: "どうぶつ", emoji: "🐯", name: "とら", wrong: ["りんご", "ばす", "がっこう"] },
+  { category: "どうぶつ", emoji: "🦁", name: "らいおん", wrong: ["ぱん", "ふね", "こんびに"] },
+  { category: "どうぶつ", emoji: "🐮", name: "うし", wrong: ["えんぴつ", "でんしゃ", "びる"] },
+  { category: "どうぶつ", emoji: "🐷", name: "ぶた", wrong: ["ぼーる", "くるま", "いえ"] },
+  { category: "どうぶつ", emoji: "🐸", name: "かえる", wrong: ["ほん", "ばす", "びょういん"] },
+  { category: "どうぶつ", emoji: "🐵", name: "さる", wrong: ["かさ", "じてんしゃ", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐔", name: "にわとり", wrong: ["ぱん", "くるま", "こんびに"] },
+  { category: "どうぶつ", emoji: "🐧", name: "ぺんぎん", wrong: ["りんご", "ふね", "いえ"] },
+  { category: "どうぶつ", emoji: "🐦", name: "とり", wrong: ["えんぴつ", "ばす", "びる"] },
+  { category: "どうぶつ", emoji: "🦆", name: "あひる", wrong: ["ほん", "でんしゃ", "がっこう"] },
+  { category: "どうぶつ", emoji: "🦉", name: "ふくろう", wrong: ["ぼうし", "くるま", "いえ"] },
+  { category: "どうぶつ", emoji: "🦅", name: "わし", wrong: ["かばん", "ばす", "こんびに"] },
+  { category: "どうぶつ", emoji: "🐺", name: "おおかみ", wrong: ["ぱん", "ふね", "びょういん"] },
+  { category: "どうぶつ", emoji: "🐗", name: "いのしし", wrong: ["りんご", "じてんしゃ", "いえ"] },
+  { category: "どうぶつ", emoji: "🐴", name: "うま", wrong: ["えんぴつ", "くるま", "がっこう"] },
+  { category: "どうぶつ", emoji: "🦄", name: "ゆにこーん", wrong: ["ぼーる", "でんしゃ", "びる"] },
+  { category: "どうぶつ", emoji: "🐝", name: "はち", wrong: ["ほん", "ばす", "こんびに"] },
+  { category: "どうぶつ", emoji: "🐛", name: "いもむし", wrong: ["かさ", "ふね", "いえ"] },
+  { category: "どうぶつ", emoji: "🦋", name: "ちょうちょ", wrong: ["ぱん", "くるま", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐌", name: "かたつむり", wrong: ["りんご", "でんしゃ", "びょういん"] },
+  { category: "どうぶつ", emoji: "🐞", name: "てんとうむし", wrong: ["ぼうし", "ばす", "いえ"] },
+  { category: "どうぶつ", emoji: "🐜", name: "あり", wrong: ["ほん", "じてんしゃ", "こんびに"] },
+  { category: "どうぶつ", emoji: "🦗", name: "こおろぎ", wrong: ["えんぴつ", "くるま", "びる"] },
+  { category: "どうぶつ", emoji: "🐢", name: "かめ", wrong: ["かばん", "ふね", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐍", name: "へび", wrong: ["ぱん", "でんしゃ", "いえ"] },
+  { category: "どうぶつ", emoji: "🦎", name: "とかげ", wrong: ["りんご", "ばす", "こんびに"] },
+  { category: "どうぶつ", emoji: "🦕", name: "きょうりゅう", wrong: ["ほん", "くるま", "びょういん"] },
+  { category: "どうぶつ", emoji: "🐳", name: "くじら", wrong: ["ぼーる", "ふね", "いえ"] },
+  { category: "どうぶつ", emoji: "🐬", name: "いるか", wrong: ["えんぴつ", "ばす", "がっこう"] },
+  { category: "どうぶつ", emoji: "🐟", name: "さかな", wrong: ["ぱん", "でんしゃ", "びる"] },
+  { category: "どうぶつ", emoji: "🐡", name: "ふぐ", wrong: ["かさ", "くるま", "こんびに"] },
+  { category: "どうぶつ", emoji: "🦈", name: "さめ", wrong: ["りんご", "じてんしゃ", "いえ"] },
+  { category: "どうぶつ", emoji: "🐙", name: "たこ", wrong: ["ほん", "ばす", "びょういん"] },
+  { category: "どうぶつ", emoji: "🦀", name: "かに", wrong: ["ぼうし", "ふね", "がっこう"] },
+  { category: "どうぶつ", emoji: "🦞", name: "ろぶすたー", wrong: ["ぱん", "くるま", "びる"] },
+  { category: "どうぶつ", emoji: "🐘", name: "ぞう", wrong: ["りんご", "ばす", "いえ"] },
+  { category: "どうぶつ", emoji: "🦒", name: "きりん", wrong: ["えんぴつ", "でんしゃ", "こんびに"] },
+  { category: "どうぶつ", emoji: "🦓", name: "しまうま", wrong: ["ほん", "くるま", "びょういん"] },
+  { category: "どうぶつ", emoji: "🦍", name: "ごりら", wrong: ["ぼーる", "ふね", "がっこう"] },
+  { category: "どうぶつ", emoji: "🦧", name: "おらんうーたん", wrong: ["かばん", "ばす", "いえ"] },
+  { category: "どうぶつ", emoji: "🦣", name: "まんもす", wrong: ["ぱん", "でんしゃ", "びる"] },
+
+  { category: "のりもの", emoji: "🚗", name: "くるま", wrong: ["いぬ", "りんご", "いえ"] },
+  { category: "のりもの", emoji: "🚕", name: "たくしー", wrong: ["ねこ", "ぱん", "がっこう"] },
+  { category: "のりもの", emoji: "🚓", name: "ぱとかー", wrong: ["うさぎ", "ほん", "びょういん"] },
+  { category: "のりもの", emoji: "🚑", name: "きゅうきゅうしゃ", wrong: ["くま", "りんご", "いえ"] },
+  { category: "のりもの", emoji: "🚒", name: "しょうぼうしゃ", wrong: ["ぱんだ", "ぼーる", "こんびに"] },
+  { category: "のりもの", emoji: "🚌", name: "ばす", wrong: ["さる", "ぱん", "がっこう"] },
+  { category: "のりもの", emoji: "🚎", name: "ろせんばす", wrong: ["ねこ", "ほん", "びる"] },
+  { category: "のりもの", emoji: "🚃", name: "でんしゃ", wrong: ["いぬ", "りんご", "いえ"] },
+  { category: "のりもの", emoji: "🚄", name: "しんかんせん", wrong: ["うさぎ", "ぼーる", "がっこう"] },
+  { category: "のりもの", emoji: "✈️", name: "ひこうき", wrong: ["くま", "ぱん", "びょういん"] },
+  { category: "のりもの", emoji: "🚁", name: "へりこぷたー", wrong: ["きつね", "ほん", "こんびに"] },
+  { category: "のりもの", emoji: "🚲", name: "じてんしゃ", wrong: ["ぱんだ", "りんご", "いえ"] },
+  { category: "のりもの", emoji: "🏍️", name: "ばいく", wrong: ["ねこ", "えんぴつ", "びる"] },
+  { category: "のりもの", emoji: "🛴", name: "きっくぼーど", wrong: ["いぬ", "かばん", "がっこう"] },
+  { category: "のりもの", emoji: "🚢", name: "ふね", wrong: ["さる", "ぱん", "びょういん"] },
+  { category: "のりもの", emoji: "🚤", name: "ぼーと", wrong: ["うし", "ほん", "いえ"] },
+  { category: "のりもの", emoji: "🚀", name: "ろけっと", wrong: ["とら", "りんご", "こんびに"] },
+  { category: "のりもの", emoji: "🚚", name: "とらっく", wrong: ["ぶた", "ぼーる", "びる"] },
+
+  { category: "みのまわりのもの", emoji: "🍎", name: "りんご", wrong: ["いぬ", "くるま", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🍌", name: "ばなな", wrong: ["ねこ", "ばす", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "🍓", name: "いちご", wrong: ["うさぎ", "でんしゃ", "びょういん"] },
+  { category: "みのまわりのもの", emoji: "🍊", name: "みかん", wrong: ["くま", "ふね", "こんびに"] },
+  { category: "みのまわりのもの", emoji: "🍇", name: "ぶどう", wrong: ["ぱんだ", "くるま", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🍞", name: "ぱん", wrong: ["さる", "ばす", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "🍙", name: "おにぎり", wrong: ["いぬ", "でんしゃ", "びる"] },
+  { category: "みのまわりのもの", emoji: "🍰", name: "けーき", wrong: ["ねこ", "ふね", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🍪", name: "くっきー", wrong: ["うさぎ", "くるま", "こんびに"] },
+  { category: "みのまわりのもの", emoji: "🥛", name: "ぎゅうにゅう", wrong: ["とら", "ばす", "びょういん"] },
+  { category: "みのまわりのもの", emoji: "🧃", name: "じゅーす", wrong: ["ぶた", "でんしゃ", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🧸", name: "ぬいぐるみ", wrong: ["きつね", "ふね", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "⚽", name: "ぼーる", wrong: ["ぱんだ", "くるま", "こんびに"] },
+  { category: "みのまわりのもの", emoji: "🎈", name: "ふうせん", wrong: ["いぬ", "ばす", "びる"] },
+  { category: "みのまわりのもの", emoji: "📘", name: "ほん", wrong: ["ねこ", "でんしゃ", "いえ"] },
+  { category: "みのまわりのもの", emoji: "📒", name: "のーと", wrong: ["うさぎ", "ふね", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "✏️", name: "えんぴつ", wrong: ["くま", "くるま", "びょういん"] },
+  { category: "みのまわりのもの", emoji: "🖍️", name: "くれよん", wrong: ["さる", "ばす", "こんびに"] },
+  { category: "みのまわりのもの", emoji: "✂️", name: "はさみ", wrong: ["とら", "でんしゃ", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🪥", name: "はぶらし", wrong: ["ぶた", "ふね", "びる"] },
+  { category: "みのまわりのもの", emoji: "🪮", name: "くし", wrong: ["きつね", "くるま", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "🧴", name: "ぼとる", wrong: ["ぱんだ", "ばす", "びょういん"] },
+  { category: "みのまわりのもの", emoji: "🧢", name: "ぼうし", wrong: ["いぬ", "でんしゃ", "こんびに"] },
+  { category: "みのまわりのもの", emoji: "👟", name: "くつ", wrong: ["ねこ", "ふね", "いえ"] },
+  { category: "みのまわりのもの", emoji: "🧦", name: "くつした", wrong: ["うさぎ", "くるま", "がっこう"] },
+  { category: "みのまわりのもの", emoji: "🧤", name: "てぶくろ", wrong: ["くま", "ばす", "びる"] },
+  { category: "みのまわりのもの", emoji: "☂️", name: "かさ", wrong: ["さる", "でんしゃ", "いえ"] },
+  { category: "みのまわりのもの", emoji: "👜", name: "かばん", wrong: ["とら", "ふね", "こんびに"] },
+
+  { category: "しごと", emoji: "👮", name: "けいさつかん", wrong: ["いぬ", "くるま", "いえ"] },
+  { category: "しごと", emoji: "👨‍🚒", name: "しょうぼうし", wrong: ["ねこ", "ばす", "がっこう"] },
+  { category: "しごと", emoji: "👩‍⚕️", name: "いしゃ", wrong: ["うさぎ", "りんご", "びょういん"] },
+  { category: "しごと", emoji: "🧑‍⚕️", name: "かんごし", wrong: ["くま", "ぱん", "いえ"] },
+  { category: "しごと", emoji: "👩‍🏫", name: "せんせい", wrong: ["ぱんだ", "でんしゃ", "こんびに"] },
+  { category: "しごと", emoji: "👨‍🍳", name: "りょうりにん", wrong: ["さる", "ぼーる", "びる"] },
+  { category: "しごと", emoji: "🧑‍🌾", name: "のうか", wrong: ["いぬ", "ふね", "がっこう"] },
+  { category: "しごと", emoji: "🧑‍🔧", name: "せいびし", wrong: ["ねこ", "くるま", "いえ"] },
+  { category: "しごと", emoji: "🧑‍🏪", name: "てんいん", wrong: ["うさぎ", "ばす", "こんびに"] },
+  { category: "しごと", emoji: "🧑‍🍞", name: "ぱんやさん", wrong: ["くま", "りんご", "びる"] },
+  { category: "しごと", emoji: "🧑‍🔬", name: "かがくしゃ", wrong: ["きつね", "でんしゃ", "いえ"] },
+  { category: "しごと", emoji: "🧑‍🎨", name: "がか", wrong: ["ぱんだ", "ふね", "がっこう"] },
+  { category: "しごと", emoji: "🧑‍🎤", name: "かしゅ", wrong: ["さる", "くるま", "びょういん"] },
+  { category: "しごと", emoji: "🧑‍🚀", name: "うちゅうひこうし", wrong: ["とら", "ばす", "いえ"] },
+  { category: "しごと", emoji: "👷", name: "こうじのひと", wrong: ["ぶた", "でんしゃ", "びる"] },
+  { category: "しごと", emoji: "🧑‍✈️", name: "ぱいろっと", wrong: ["きつね", "ふね", "こんびに"] },
+  { category: "しごと", emoji: "🧑‍💼", name: "かいしゃいん", wrong: ["いぬ", "くるま", "がっこう"] },
+  { category: "しごと", emoji: "🚚", name: "うんてんしゅ", wrong: ["ねこ", "りんご", "いえ"] },
+
+  { category: "たてもの", emoji: "🏠", name: "いえ", wrong: ["いぬ", "くるま", "りんご"] },
+  { category: "たてもの", emoji: "🏫", name: "がっこう", wrong: ["ねこ", "ばす", "ぱん"] },
+  { category: "たてもの", emoji: "🏥", name: "びょういん", wrong: ["うさぎ", "でんしゃ", "ぼーる"] },
+  { category: "たてもの", emoji: "🏪", name: "こんびに", wrong: ["くま", "ふね", "りんご"] },
+  { category: "たてもの", emoji: "🏬", name: "でぱーと", wrong: ["ぱんだ", "くるま", "ほん"] },
+  { category: "たてもの", emoji: "🏣", name: "ゆうびんきょく", wrong: ["さる", "ばす", "ぱん"] },
+  { category: "たてもの", emoji: "⛽", name: "がそりんすたんど", wrong: ["いぬ", "でんしゃ", "りんご"] },
+  { category: "たてもの", emoji: "🏢", name: "びる", wrong: ["ねこ", "ふね", "ぼーる"] },
+  { category: "たてもの", emoji: "🏦", name: "ぎんこう", wrong: ["うさぎ", "くるま", "ぱん"] },
+  { category: "たてもの", emoji: "🏨", name: "ほてる", wrong: ["くま", "ばす", "りんご"] },
+  { category: "たてもの", emoji: "🏭", name: "こうじょう", wrong: ["きつね", "でんしゃ", "ほん"] },
+  { category: "たてもの", emoji: "🏛️", name: "はくぶつかん", wrong: ["ぱんだ", "ふね", "ぼーる"] },
+  { category: "たてもの", emoji: "⛪", name: "きょうかい", wrong: ["さる", "くるま", "ぱん"] },
+  { category: "たてもの", emoji: "🛕", name: "おてら", wrong: ["とら", "ばす", "りんご"] },
+  { category: "たてもの", emoji: "⛩️", name: "じんじゃ", wrong: ["ぶた", "でんしゃ", "ほん"] },
+  { category: "たてもの", emoji: "🚉", name: "えき", wrong: ["きつね", "ふね", "ぼーる"] },
+  { category: "たてもの", emoji: "🏚️", name: "こや", wrong: ["いぬ", "くるま", "ぱん"] }
+];
+const TOTAL = 12;
+let questions = [];
+let index = 0;
+let score = 0;
+
+const qNum = document.getElementById('qNum');
+const qTotal = document.getElementById('qTotal');
+const correctCount = document.getElementById('correctCount');
+const categoryEl = document.getElementById('category');
+const visualEl = document.getElementById('visual');
+const choicesEl = document.getElementById('choices');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+const playArea = document.getElementById('playArea');
+const resultArea = document.getElementById('resultArea');
+const resultFace = document.getElementById('resultFace');
+const resultText = document.getElementById('resultText');
+const restartBtn = document.getElementById('restartBtn');
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function startQuiz() {
+  questions = shuffle(items).slice(0, TOTAL);
+  index = 0;
+  score = 0;
+  qTotal.textContent = TOTAL;
+  correctCount.textContent = 0;
+  playArea.classList.remove('hidden');
+  resultArea.classList.add('hidden');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[index];
+  qNum.textContent = index + 1;
+  categoryEl.textContent = q.category;
+  visualEl.textContent = q.emoji;
+  feedbackEl.textContent = '';
+  nextBtn.classList.add('hidden');
+  choicesEl.innerHTML = '';
+
+  const options = shuffle([q.name, ...q.wrong.slice(0, 3)]);
+  options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = option;
+    btn.addEventListener('click', () => answer(btn, option, q.name));
+    choicesEl.appendChild(btn);
+  });
+}
+
+function answer(btn, selected, correct) {
+  const buttons = document.querySelectorAll('.btn');
+  buttons.forEach(b => b.disabled = true);
+
+  if (selected === correct) {
+    btn.classList.add('correct');
+    feedbackEl.textContent = '🎉 せいかい！';
+    feedbackEl.style.color = '#2e7d32';
+    score++;
+    correctCount.textContent = score;
+  } else {
+    btn.classList.add('wrong');
+    feedbackEl.textContent = '😊 こたえは「' + correct + '」だよ';
+    feedbackEl.style.color = '#c62828';
+    buttons.forEach(b => {
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+  }
+  nextBtn.classList.remove('hidden');
+}
+
+nextBtn.addEventListener('click', () => {
+  index++;
+  if (index >= TOTAL) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+});
+
+function showResult() {
+  playArea.classList.add('hidden');
+  resultArea.classList.remove('hidden');
+  const rate = score / TOTAL;
+  resultFace.textContent = rate >= 0.9 ? '🏆' : rate >= 0.7 ? '🌟' : rate >= 0.5 ? '😊' : '👏';
+  resultText.textContent = TOTAL + 'もんちゅう ' + score + 'もん せいかい！';
+}
+
+restartBtn.addEventListener('click', startQuiz);
+startQuiz();
+</script>
+</body>
+</html>
