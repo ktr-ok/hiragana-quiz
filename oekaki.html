@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>単一HTMLお絵描きアプリ</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --line: #d8dee9;
+      --text: #222;
+      --muted: #667085;
+      --accent: #2563eb;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(0,0,0,0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      padding: 16px;
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .toolbar {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fafafa;
+    }
+
+    .group label {
+      font-size: 14px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .group.column {
+      width: 100%;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .palette-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .color-chip {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 2px solid #d1d5db;
+      cursor: pointer;
+      padding: 0;
+      position: relative;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+
+    .color-chip:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .color-chip.active {
+      border-color: #111827;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+    }
+
+    .color-chip.white {
+      border-color: #9ca3af;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      height: 36px;
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"] {
+      width: 140px;
+      cursor: pointer;
+    }
+
+    .size-value {
+      min-width: 2.5em;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid #d0d7e2;
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button.danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fff5f5;
+    }
+
+    .canvas-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(70vh, 800px);
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .note {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+
+      .toolbar {
+        padding: 10px;
+      }
+
+      .group {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .group.column {
+        justify-content: flex-start;
+      }
+
+      .palette-row {
+        width: 100%;
+      }
+
+      input[type="range"] {
+        flex: 1;
+      }
+
+      button.tool-btn {
+        flex: 1 1 calc(50% - 8px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="toolbar">
+      <div class="group column">
+        <label>よく使う色</label>
+        <div class="palette-row" id="palette">
+          <button type="button" class="color-chip active" data-color="#222222" style="background:#222222;" title="黒"></button>
+          <button type="button" class="color-chip" data-color="#ef4444" style="background:#ef4444;" title="赤"></button>
+          <button type="button" class="color-chip" data-color="#f97316" style="background:#f97316;" title="オレンジ"></button>
+          <button type="button" class="color-chip" data-color="#eab308" style="background:#eab308;" title="黄"></button>
+          <button type="button" class="color-chip" data-color="#22c55e" style="background:#22c55e;" title="緑"></button>
+          <button type="button" class="color-chip" data-color="#06b6d4" style="background:#06b6d4;" title="水色"></button>
+          <button type="button" class="color-chip" data-color="#3b82f6" style="background:#3b82f6;" title="青"></button>
+          <button type="button" class="color-chip" data-color="#8b5cf6" style="background:#8b5cf6;" title="紫"></button>
+          <button type="button" class="color-chip" data-color="#ec4899" style="background:#ec4899;" title="ピンク"></button>
+          <button type="button" class="color-chip white" data-color="#ffffff" style="background:#ffffff;" title="白"></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <label for="colorPicker">色</label>
+        <input id="colorPicker" type="color" value="#222222" />
+        <label for="brushSize">太さ</label>
+        <input id="brushSize" type="range" min="1" max="60" value="6" />
+        <span id="sizeValue" class="size-value">6px</span>
+      </div>
+
+      <button id="penBtn" class="tool-btn active" type="button">ペン</button>
+      <button id="eraserBtn" class="tool-btn" type="button">消しゴム</button>
+      <button id="clearBtn" class="tool-btn danger" type="button">全消し</button>
+      <button id="saveBtn" class="tool-btn" type="button">PNG保存</button>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <p class="note">
+      カラーピッカーでも色変更できます。丸い色ボタンを押すと、その色にすぐ切り替わります。
+    </p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const colorPicker = document.getElementById("colorPicker");
+    const brushSize = document.getElementById("brushSize");
+    const sizeValue = document.getElementById("sizeValue");
+    const penBtn = document.getElementById("penBtn");
+    const eraserBtn = document.getElementById("eraserBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const palette = document.getElementById("palette");
+    const colorChips = Array.from(document.querySelectorAll(".color-chip"));
+
+    let tool = "pen";
+    let drawing = false;
+    const lastPoints = new Map();
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      const oldImage = document.createElement("canvas");
+      oldImage.width = canvas.width;
+      oldImage.height = canvas.height;
+      const oldCtx = oldImage.getContext("2d");
+      oldCtx.drawImage(canvas, 0, 0);
+
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      if (oldImage.width > 0 && oldImage.height > 0) {
+        ctx.drawImage(oldImage, 0, 0, rect.width, rect.height);
+      }
+
+      applyBrushStyle();
+    }
+
+    function applyBrushStyle() {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = Number(brushSize.value);
+
+      if (tool === "eraser") {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = "#ffffff";
+      } else {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = colorPicker.value;
+      }
+    }
+
+    function getPointFromEvent(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    function drawLine(from, to) {
+      applyBrushStyle();
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+
+    function drawDot(point) {
+      applyBrushStyle();
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, Math.max(1, Number(brushSize.value) / 2), 0, Math.PI * 2);
+      ctx.fillStyle = tool === "eraser" ? "#ffffff" : colorPicker.value;
+      ctx.fill();
+    }
+
+    function updateToolButtons() {
+      penBtn.classList.toggle("active", tool === "pen");
+      eraserBtn.classList.toggle("active", tool === "eraser");
+    }
+
+    function updateSizeLabel() {
+      sizeValue.textContent = `${brushSize.value}px`;
+    }
+
+    function updatePaletteActive(selectedColor) {
+      const normalized = selectedColor.toLowerCase();
+      colorChips.forEach((chip) => {
+        const chipColor = (chip.dataset.color || "").toLowerCase();
+        chip.classList.toggle("active", chipColor === normalized);
+      });
+    }
+
+    function setCurrentColor(color) {
+      colorPicker.value = color;
+      updatePaletteActive(color);
+      applyBrushStyle();
+    }
+
+    function handlePointerDown(e) {
+      e.preventDefault();
+
+      drawing = true;
+      const point = getPointFromEvent(e);
+      lastPoints.set(e.pointerId, point);
+      drawDot(point);
+
+      if (canvas.setPointerCapture) {
+        canvas.setPointerCapture(e.pointerId);
+      }
+    }
+
+    function handlePointerMove(e) {
+      if (!drawing) return;
+      if (!lastPoints.has(e.pointerId)) return;
+
+      e.preventDefault();
+
+      const prev = lastPoints.get(e.pointerId);
+      const current = getPointFromEvent(e);
+
+      drawLine(prev, current);
+      lastPoints.set(e.pointerId, current);
+    }
+
+    function handlePointerUp(e) {
+      if (lastPoints.has(e.pointerId)) {
+        lastPoints.delete(e.pointerId);
+      }
+
+      drawing = false;
+
+      if (canvas.releasePointerCapture) {
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (_) {
+        }
+      }
+    }
+
+    function clearCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, rect.width, rect.height);
+    }
+
+    function saveAsPng() {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      const now = new Date();
+
+      const pad = (n) => String(n).padStart(2, "0");
+      const fileName =
+        `oekaki_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.png`;
+
+      link.href = dataUrl;
+      link.download = fileName;
+      link.click();
+    }
+
+    colorPicker.addEventListener("input", () => {
+      updatePaletteActive(colorPicker.value);
+      applyBrushStyle();
+    });
+
+    brushSize.addEventListener("input", () => {
+      updateSizeLabel();
+      applyBrushStyle();
+    });
+
+    palette.addEventListener("click", (e) => {
+      const chip = e.target.closest(".color-chip");
+      if (!chip) return;
+
+      const color = chip.dataset.color;
+      if (!color) return;
+
+      setCurrentColor(color);
+
+      if (tool === "eraser") {
+        tool = "pen";
+        updateToolButtons();
+      }
+    });
+
+    penBtn.addEventListener("click", () => {
+      tool = "pen";
+      updateToolButtons();
+      applyBrushStyle();
+    });
+
+    eraserBtn.addEventListener("click", () => {
+      tool = "eraser";
+      updateToolButtons();
+      applyBrushStyle();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      const ok = confirm("キャンバスを全部消します。よろしいですか？");
+      if (ok) clearCanvas();
+    });
+
+    saveBtn.addEventListener("click", saveAsPng);
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+    canvas.addEventListener("pointerleave", handlePointerUp);
+
+    window.addEventListener("resize", resizeCanvas);
+
+    updateSizeLabel();
+    updateToolButtons();
+    updatePaletteActive(colorPicker.value);
+    resizeCanvas();
+  </script>
+</body>
+</html>
