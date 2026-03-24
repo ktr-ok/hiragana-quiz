@@ -197,6 +197,7 @@
     let tracePoints = [];
     let isDrawing = false;
     let cleared = false;
+    let lastPos = null;
 
     function rand(max) {
       return Math.floor(Math.random() * max);
@@ -230,7 +231,6 @@
 
     function randomBorderCell(rows, cols) {
       const side = rand(4);
-
       if (side === 0) return { r: 0, c: rand(cols) };
       if (side === 1) return { r: rand(rows), c: cols - 1 };
       if (side === 2) return { r: rows - 1, c: rand(cols) };
@@ -314,6 +314,7 @@
       tracePoints = [cellCenter(player.r, player.c)];
       isDrawing = false;
       cleared = false;
+      lastPos = null;
       statusEl.textContent = "";
       redraw();
     }
@@ -396,10 +397,11 @@
       ctx.stroke();
 
       const current = tracePoints[tracePoints.length - 1];
-      ctx.fillStyle = "#0b57d0";
-      ctx.beginPath();
-      ctx.arc(current.x, current.y, Math.max(6, cellSize * 0.16), 0, Math.PI * 2);
-      ctx.fill();
+      const emoji = "🚗";
+      ctx.font = `${Math.max(18, cellSize * 0.8)}px "Apple Color Emoji","Segoe UI Emoji",system-ui,sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji, current.x, current.y);
     }
 
     function redraw() {
@@ -459,6 +461,29 @@
       }
     }
 
+    function moveAlongSegment(fromPos, toPos) {
+      const dx = toPos.x - fromPos.x;
+      const dy = toPos.y - fromPos.y;
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.max(4, cellSize * 0.2)));
+
+      const visited = new Set();
+
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = fromPos.x + dx * t;
+        const y = fromPos.y + dy * t;
+        const cell = posToCell({ x, y });
+
+        if (!cell) continue;
+
+        const key = `${cell.r},${cell.c}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        tryMoveToCell(cell);
+      }
+    }
+
     function handlePointerDown(e) {
       e.preventDefault();
       const pos = getEventPos(e);
@@ -467,6 +492,7 @@
 
       if (cell.r === player.r && cell.c === player.c) {
         isDrawing = true;
+        lastPos = pos;
         if (canvas.setPointerCapture) {
           canvas.setPointerCapture(e.pointerId);
         }
@@ -476,15 +502,24 @@
     function handlePointerMove(e) {
       if (!isDrawing) return;
       e.preventDefault();
+
       const pos = getEventPos(e);
-      const cell = posToCell(pos);
-      tryMoveToCell(cell);
+
+      if (!lastPos) {
+        lastPos = pos;
+        return;
+      }
+
+      moveAlongSegment(lastPos, pos);
+      lastPos = pos;
     }
 
     function handlePointerUp(e) {
       if (!isDrawing) return;
       e.preventDefault();
       isDrawing = false;
+      lastPos = null;
+
       if (canvas.releasePointerCapture) {
         canvas.releasePointerCapture(e.pointerId);
       }
