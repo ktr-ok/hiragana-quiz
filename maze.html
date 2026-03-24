@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>迷路ジェネレーター ランダムS/G なぞる版</title>
+  <title>子猫めいろ</title>
   <style>
     :root {
-      --bg: #f7f7fb;
+      --bg: #fdfaf6;
       --card: #ffffff;
       --line: #222;
-      --accent: #2f6fed;
+      --accent: #ff8a65;
       --text: #222;
       --muted: #666;
     }
@@ -78,7 +78,7 @@
     }
 
     button.secondary {
-      background: #555;
+      background: #777;
     }
 
     .actions {
@@ -113,7 +113,7 @@
 
     .status {
       font-weight: 700;
-      color: #1f4dbd;
+      color: #d2691e;
     }
 
     @media (max-width: 800px) {
@@ -132,7 +132,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>迷路ジェネレーター ランダムS/G</h1>
+    <h1>🐈 子猫めいろ 🐱</h1>
 
     <div class="panel">
       <div class="controls">
@@ -155,13 +155,13 @@
       </div>
 
       <div class="actions">
-        <button id="generateBtn">迷路再生成</button>
-        <button id="resetTraceBtn" class="secondary">なぞり直し</button>
+        <button id="generateBtn">あたらしいめいろ</button>
+        <button id="resetTraceBtn" class="secondary">さいしょから</button>
         <button id="downloadBtn" class="secondary">PNG保存</button>
       </div>
 
       <div class="note">
-        緑の丸から指でなぞって、赤の丸を目指してください。スタートとゴールは毎回ランダムです。
+        迷子の子猫 🐈 を、お母さん猫 🐱 のところまで連れていこう。
       </div>
       <div id="status" class="status"></div>
     </div>
@@ -370,21 +370,18 @@
       const startPos = cellCenter(startCell.r, startCell.c);
       const goalPos = cellCenter(goalCell.r, goalCell.c);
 
-      ctx.fillStyle = "#2ecc71";
-      ctx.beginPath();
-      ctx.arc(startPos.x, startPos.y, Math.max(8, cellSize * 0.22), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.font = `${Math.max(20, cellSize * 0.9)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
 
-      ctx.fillStyle = "#e74c3c";
-      ctx.beginPath();
-      ctx.arc(goalPos.x, goalPos.y, Math.max(8, cellSize * 0.22), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillText("🐱", goalPos.x, goalPos.y);
+      ctx.fillText("🏁", startPos.x, startPos.y);
     }
 
     function drawTrace() {
       if (tracePoints.length < 1) return;
 
-      ctx.strokeStyle = "#1f77ff";
+      ctx.strokeStyle = "#7aa7ff";
       ctx.lineWidth = Math.max(4, cellSize * 0.22);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -397,11 +394,10 @@
       ctx.stroke();
 
       const current = tracePoints[tracePoints.length - 1];
-      const emoji = "🚗";
-      ctx.font = `${Math.max(18, cellSize * 0.8)}px "Apple Color Emoji","Segoe UI Emoji",system-ui,sans-serif`;
+      ctx.font = `${Math.max(20, cellSize * 0.9)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(emoji, current.x, current.y);
+      ctx.fillText("🐈", current.x, current.y);
     }
 
     function redraw() {
@@ -456,7 +452,7 @@
 
         if (player.r === goalCell.r && player.c === goalCell.c) {
           cleared = true;
-          statusEl.textContent = "ゴール！おめでとう！";
+          statusEl.textContent = "おかあさんねこに あえた！";
         }
       }
     }
@@ -465,7 +461,6 @@
       const dx = toPos.x - fromPos.x;
       const dy = toPos.y - fromPos.y;
       const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / Math.max(4, cellSize * 0.2)));
-
       const visited = new Set();
 
       for (let i = 1; i <= steps; i++) {
@@ -543,7 +538,7 @@
     function downloadPng() {
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
-      link.download = `maze-${Date.now()}.png`;
+      link.download = `koneko-maze-${Date.now()}.png`;
       link.click();
     }
 
