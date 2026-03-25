@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>単一HTMLお絵描きアプリ（Undo/Redo・塗りつぶし付き）</title>
+  <title>単一HTMLお絵描きアプリ（Undo/Redo・許容差つき塗りつぶし）</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -88,7 +88,6 @@
       border: 2px solid #d1d5db;
       cursor: pointer;
       padding: 0;
-      position: relative;
       transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
     }
 
@@ -151,6 +150,12 @@
       border-color: var(--accent);
     }
 
+    button.danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fff5f5;
+    }
+
     button:disabled {
       opacity: 0.45;
       cursor: default;
@@ -196,6 +201,7 @@
       .group {
         width: 100%;
         justify-content: space-between;
+        flex-wrap: wrap;
       }
 
       .group.column {
@@ -208,6 +214,7 @@
 
       input[type="range"] {
         flex: 1;
+        min-width: 140px;
       }
 
       button.tool-btn {
@@ -251,6 +258,7 @@
       <button id="fillBtn" class="tool-btn" type="button">塗りつぶし</button>
       <button id="undoBtn" class="tool-btn" type="button" disabled>Undo</button>
       <button id="redoBtn" class="tool-btn" type="button" disabled>Redo</button>
+      <button id="clearBtn" class="tool-btn danger" type="button">全消し</button>
       <button id="saveBtn" class="tool-btn" type="button">PNG保存</button>
     </div>
 
@@ -259,7 +267,7 @@
     </div>
 
     <p class="note">
-      ペン・消しゴム・塗りつぶしを切り替えて使えます。消したいときは再読み込みでも初期状態に戻せます。
+      塗りつぶしは境界のギザギザに少し強い許容差つきです。全消しは確認なしで即実行されます。
     </p>
   </div>
 
@@ -275,6 +283,7 @@
     const fillBtn = document.getElementById("fillBtn");
     const undoBtn = document.getElementById("undoBtn");
     const redoBtn = document.getElementById("redoBtn");
+    const clearBtn = document.getElementById("clearBtn");
     const saveBtn = document.getElementById("saveBtn");
     const palette = document.getElementById("palette");
     const colorChips = Array.from(document.querySelectorAll(".color-chip"));
@@ -287,6 +296,9 @@
     const undoStack = [];
     const redoStack = [];
     const MAX_HISTORY = 30;
+
+    // 許容差。大きいほど近い色もまとめて塗る
+    const FILL_TOLERANCE = 40;
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -337,6 +349,15 @@
 
     function updateSizeLabel() {
       sizeValue.textContent = `${brushSize.value}px`;
+    }
+
+    function normalizeHex(hex) {
+      const value = String(hex).trim().toLowerCase();
+      if (/^#[0-9a-f]{6}$/.test(value)) return value;
+      if (/^#[0-9a-f]{3}$/.test(value)) {
+        return "#" + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
+      }
+      return "#222222";
     }
 
     function updatePaletteActive(selectedColor) {
@@ -427,15 +448,6 @@
       ctx.fill();
     }
 
-    function normalizeHex(hex) {
-      const value = String(hex).trim().toLowerCase();
-      if (/^#[0-9a-f]{6}$/.test(value)) return value;
-      if (/^#[0-9a-f]{3}$/.test(value)) {
-        return "#" + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
-      }
-      return "#222222";
-    }
-
     function hexToRgba(hex) {
       const value = normalizeHex(hex);
       return {
@@ -446,65 +458,90 @@
       };
     }
 
-    function colorsMatch(data, index, color) {
-      return (
-        data[index] === color.r &&
-        data[index + 1] === color.g &&
-        data[index + 2] === color.b &&
-        data[index + 3] === color.a
-      );
+    function getPixel(data, index) {
+      return {
+        r: data[index],
+        g: data[index + 1],
+        b: data[index + 2],
+        a: data[index + 3]
+      };
     }
 
-    function setColor(data, index, color) {
+    function setPixel(data, index, color) {
       data[index] = color.r;
       data[index + 1] = color.g;
       data[index + 2] = color.b;
       data[index + 3] = color.a;
     }
 
-    function floodFill(startX, startY, fillHex) {
+    function colorDistance(c1, c2) {
+      return (
+        Math.abs(c1.r - c2.r) +
+        Math.abs(c1.g - c2.g) +
+        Math.abs(c1.b - c2.b) +
+        Math.abs(c1.a - c2.a)
+      );
+    }
+
+    function colorsCloseEnough(c1, c2, tolerance) {
+      return colorDistance(c1, c2) <= tolerance;
+    }
+
+    function sameExactColor(c1, c2) {
+      return (
+        c1.r === c2.r &&
+        c1.g === c2.g &&
+        c1.b === c2.b &&
+        c1.a === c2.a
+      );
+    }
+
+    function floodFillWithTolerance(startX, startY, fillHex, tolerance = 0) {
       const width = canvas.width;
       const height = canvas.height;
 
-      if (startX < 0 || startY < 0 || startX >= width || startY >= height) return false;
+      if (startX < 0 || startY < 0 || startX >= width || startY >= height) {
+        return false;
+      }
 
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
       const startIndex = (startY * width + startX) * 4;
-      const targetColor = {
-        r: data[startIndex],
-        g: data[startIndex + 1],
-        b: data[startIndex + 2],
-        a: data[startIndex + 3]
-      };
+      const targetColor = getPixel(data, startIndex);
       const fillColor = hexToRgba(fillHex);
 
-      if (
-        targetColor.r === fillColor.r &&
-        targetColor.g === fillColor.g &&
-        targetColor.b === fillColor.b &&
-        targetColor.a === fillColor.a
-      ) {
+      if (sameExactColor(targetColor, fillColor)) {
         return false;
       }
 
+      const visited = new Uint8Array(width * height);
       const stack = [[startX, startY]];
+      let changed = false;
 
       while (stack.length > 0) {
         const [x, y] = stack.pop();
         if (x < 0 || y < 0 || x >= width || y >= height) continue;
 
-        const index = (y * width + x) * 4;
-        if (!colorsMatch(data, index, targetColor)) continue;
+        const pos = y * width + x;
+        if (visited[pos]) continue;
+        visited[pos] = 1;
 
-        setColor(data, index, fillColor);
+        const index = pos * 4;
+        const currentColor = getPixel(data, index);
+
+        if (!colorsCloseEnough(currentColor, targetColor, tolerance)) continue;
+
+        setPixel(data, index, fillColor);
+        changed = true;
 
         stack.push([x + 1, y]);
         stack.push([x - 1, y]);
         stack.push([x, y + 1]);
         stack.push([x, y - 1]);
       }
+
+      if (!changed) return false;
 
       ctx.putImageData(imageData, 0, 0);
       return true;
@@ -520,7 +557,7 @@
         const y = Math.floor(point.y * dpr);
 
         pushUndoState();
-        const changed = floodFill(x, y, colorPicker.value);
+        const changed = floodFillWithTolerance(x, y, colorPicker.value, FILL_TOLERANCE);
         if (!changed) {
           undoStack.pop();
           updateHistoryButtons();
@@ -571,6 +608,19 @@
         } catch (_) {
         }
       }
+    }
+
+    function clearCanvas() {
+      pushUndoState();
+      const dpr = window.devicePixelRatio || 1;
+      const widthCss = canvas.width / dpr;
+      const heightCss = canvas.height / dpr;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, widthCss, heightCss);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, widthCss, heightCss);
+      applyBrushStyle();
     }
 
     function saveAsPng() {
@@ -632,6 +682,7 @@
 
     undoBtn.addEventListener("click", undo);
     redoBtn.addEventListener("click", redo);
+    clearBtn.addEventListener("click", clearCanvas);
     saveBtn.addEventListener("click", saveAsPng);
 
     canvas.addEventListener("pointerdown", handlePointerDown);
