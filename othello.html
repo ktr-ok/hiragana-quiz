@@ -9,8 +9,6 @@
       --board: #1f8b4c;
       --board-dark: #176b3a;
       --line: #0f4f2a;
-      --black: #222;
-      --white: #f5f5f5;
       --bg: #f3f6f8;
       --text: #1c2733;
       --accent: #2b6ef2;
@@ -138,7 +136,6 @@
       width: 100%;
       height: 100%;
       transform-style: preserve-3d;
-      transition: transform 0.55s ease, scale 0.18s ease;
     }
 
     .disc.black .disc-inner {
@@ -149,12 +146,16 @@
       transform: rotateY(180deg);
     }
 
-    .disc.flipping .disc-inner {
-      transition: transform 0.6s ease;
+    .disc.flip-to-black .disc-inner {
+      animation: flipToBlack 0.6s ease forwards;
+    }
+
+    .disc.flip-to-white .disc-inner {
+      animation: flipToWhite 0.6s ease forwards;
     }
 
     .disc.placed .disc-inner {
-      animation: popIn 0.2s ease;
+      animation: popIn 0.18s ease;
     }
 
     .face {
@@ -218,6 +219,16 @@
       100% { transform: scale(1); }
     }
 
+    @keyframes flipToBlack {
+      0% { transform: rotateY(180deg); }
+      100% { transform: rotateY(0deg); }
+    }
+
+    @keyframes flipToWhite {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(180deg); }
+    }
+
     @media (max-width: 640px) {
       .topbar {
         grid-template-columns: 1fr;
@@ -231,10 +242,8 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .disc-inner {
-        transition: none;
-      }
-
+      .disc.flip-to-black .disc-inner,
+      .disc.flip-to-white .disc-inner,
       .disc.placed .disc-inner {
         animation: none;
       }
@@ -291,7 +300,7 @@
     let currentPlayer = BLACK;
     let showHints = true;
     let gameOver = false;
-    let animatingCells = new Set();
+    let flippedCells = new Set();
     let placedCell = null;
 
     const boardEl = document.getElementById("board");
@@ -317,7 +326,7 @@
 
       currentPlayer = BLACK;
       gameOver = false;
-      animatingCells.clear();
+      flippedCells.clear();
       placedCell = null;
 
       render();
@@ -407,7 +416,7 @@
 
     async function handleCellClick(row, col) {
       if (gameOver) return;
-      if (animatingCells.size > 0) return;
+      if (flippedCells.size > 0) return;
 
       const result = placeDisc(row, col, currentPlayer);
 
@@ -417,15 +426,12 @@
       }
 
       placedCell = `${result.placed[0]},${result.placed[1]}`;
-
-      for (const [r, c] of result.flipped) {
-        animatingCells.add(`${r},${c}`);
-      }
+      flippedCells = new Set(result.flipped.map(([r, c]) => `${r},${c}`));
 
       render();
       await sleep(620);
 
-      animatingCells.clear();
+      flippedCells.clear();
       placedCell = null;
       currentPlayer = opponent(currentPlayer);
 
@@ -469,12 +475,16 @@
       const disc = document.createElement("div");
       disc.className = `disc ${value === BLACK ? "black" : "white"}`;
 
-      if (animatingCells.has(cellKey)) {
-        disc.classList.add("flipping");
-      }
-
       if (placedCell === cellKey) {
         disc.classList.add("placed");
+      }
+
+      if (flippedCells.has(cellKey)) {
+        if (value === BLACK) {
+          disc.classList.add("flip-to-black");
+        } else {
+          disc.classList.add("flip-to-white");
+        }
       }
 
       const inner = document.createElement("div");
@@ -509,7 +519,7 @@
           cell.setAttribute("aria-label", `${row + 1}行${col + 1}列`);
           cell.addEventListener("click", () => handleCellClick(row, col));
 
-          if (!gameOver && animatingCells.size === 0 && showHints && validSet.has(cellKey)) {
+          if (!gameOver && flippedCells.size === 0 && showHints && validSet.has(cellKey)) {
             cell.classList.add("valid");
           }
 
