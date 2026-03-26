@@ -227,6 +227,14 @@
 <body>
   <div class="app">
     <div class="toolbar">
+
+      <button id="penBtn" class="tool-btn active" type="button">ペン</button>
+      <button id="eraserBtn" class="tool-btn" type="button">消しゴム</button>
+      <button id="fillBtn" class="tool-btn" type="button">塗りつぶし</button>
+      <button id="undoBtn" class="tool-btn" type="button" disabled>Undo</button>
+      <button id="redoBtn" class="tool-btn" type="button" disabled>Redo</button>
+      <button id="clearBtn" class="tool-btn danger" type="button">全消し</button>
+      <button id="saveBtn" class="tool-btn" type="button">PNG保存</button>
       <div class="group one-line-tools">
         <div class="group">
           <label for="colorPicker">色</label>
@@ -251,15 +259,6 @@
           <button type="button" class="color-chip white" data-color="#ffffff" style="background:#ffffff;" title="白"></button>
         </div>
       </div>
-
-
-      <button id="penBtn" class="tool-btn active" type="button">ペン</button>
-      <button id="eraserBtn" class="tool-btn" type="button">消しゴム</button>
-      <button id="fillBtn" class="tool-btn" type="button">塗りつぶし</button>
-      <button id="undoBtn" class="tool-btn" type="button" disabled>Undo</button>
-      <button id="redoBtn" class="tool-btn" type="button" disabled>Redo</button>
-      <button id="clearBtn" class="tool-btn danger" type="button">全消し</button>
-      <button id="saveBtn" class="tool-btn" type="button">PNG保存</button>
     </div>
 
     <div class="canvas-wrap">
