@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>単一HTMLお絵描きアプリ（Undo/Redo・許容差つき塗りつぶし）</title>
+  <title>お絵描きアプリ</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -77,10 +77,11 @@
 
     .palette-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 8px;
+      overflow-x: auto;
     }
-
+    
     .color-chip {
       width: 34px;
       height: 34px;
@@ -226,7 +227,7 @@
 <body>
   <div class="app">
     <div class="toolbar">
-      <div class="group column">
+      <div class="group one-line-tools">
         <div class="group">
           <label for="colorPicker">色</label>
           <input id="colorPicker" type="color" value="#222222" />
