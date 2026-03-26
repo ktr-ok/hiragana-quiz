@@ -227,7 +227,13 @@
   <div class="app">
     <div class="toolbar">
       <div class="group column">
-        <label>よく使う色</label>
+        <div class="group">
+          <label for="colorPicker">色</label>
+          <input id="colorPicker" type="color" value="#222222" />
+          <label for="brushSize">太さ</label>
+          <input id="brushSize" type="range" min="1" max="60" value="6" />
+          <span id="sizeValue" class="size-value">6px</span>
+        </div>
         <div class="palette-row" id="palette">
           <button type="button" class="color-chip active" data-color="#222222" style="background:#222222;" title="黒"></button>
           <button type="button" class="color-chip" data-color="#ff0000" style="background:#ff0000;" title="赤"></button>
@@ -245,13 +251,6 @@
         </div>
       </div>
 
-      <div class="group">
-        <label for="colorPicker">色</label>
-        <input id="colorPicker" type="color" value="#222222" />
-        <label for="brushSize">太さ</label>
-        <input id="brushSize" type="range" min="1" max="60" value="6" />
-        <span id="sizeValue" class="size-value">6px</span>
-      </div>
 
       <button id="penBtn" class="tool-btn active" type="button">ペン</button>
       <button id="eraserBtn" class="tool-btn" type="button">消しゴム</button>
@@ -298,7 +297,7 @@
     const MAX_HISTORY = 30;
 
     // 許容差。大きいほど近い色もまとめて塗る
-    const FILL_TOLERANCE = 40;
+    const FILL_TOLERANCE = 65;
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -542,9 +541,46 @@
       }
 
       if (!changed) return false;
-
+      softenFillEdges(imageData, fillColor, width, height);
       ctx.putImageData(imageData, 0, 0);
       return true;
+    }
+    function softenFillEdges(imageData, fillColor, width, height) {
+      const data = imageData.data;
+      const copy = new Uint8ClampedArray(data);
+    
+      function idx(x, y) {
+        return (y * width + x) * 4;
+      }
+    
+      function isNearFillColor(i) {
+        const dr = Math.abs(copy[i] - fillColor.r);
+        const dg = Math.abs(copy[i + 1] - fillColor.g);
+        const db = Math.abs(copy[i + 2] - fillColor.b);
+        const da = Math.abs(copy[i + 3] - fillColor.a);
+        return (dr + dg + db + da) <= 80;
+      }
+    
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const i = idx(x, y);
+    
+          if (isNearFillColor(i)) continue;
+    
+          let around = 0;
+          if (isNearFillColor(idx(x - 1, y))) around++;
+          if (isNearFillColor(idx(x + 1, y))) around++;
+          if (isNearFillColor(idx(x, y - 1))) around++;
+          if (isNearFillColor(idx(x, y + 1))) around++;
+    
+          if (around >= 3) {
+            data[i] = fillColor.r;
+            data[i + 1] = fillColor.g;
+            data[i + 2] = fillColor.b;
+            data[i + 3] = fillColor.a;
+          }
+        }
+      }
     }
 
     function handlePointerDown(e) {
