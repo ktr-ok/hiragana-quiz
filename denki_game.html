@@ -6,14 +6,17 @@
     <title>電気イスゲーム</title>
     <style>
         :root {
-            --primary: #007bff;
-            --danger: #dc3545;
-            --success: #28a745;
-            --bg: #f8f9fa;
+            --primary: #00d2ff;
+            --danger: #ff3333;
+            --success: #33ff77;
+            --bg: #111111;
+            --panel-bg: #222222;
+            --text-main: #eeeeee;
         }
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--bg);
+            color: var(--text-main);
             margin: 0;
             padding: 20px;
             display: flex;
@@ -21,82 +24,182 @@
             align-items: center;
             min-height: 100vh;
             text-align: center;
+            overflow: hidden; /* 画面揺れ時のスクロールバー非表示用 */
         }
         #app {
-            background: white;
+            background: var(--panel-bg);
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            border: 1px solid #444;
             width: 100%;
             max-width: 600px;
+            position: relative;
+            z-index: 10;
         }
         .screen { display: none; }
         .screen.active { display: block; }
-        h1 { font-size: 24px; color: #333; margin-bottom: 20px; }
+        h1 { 
+            font-size: 24px; 
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
         .status-board {
             display: flex;
             justify-content: space-between;
-            background: #e9ecef;
+            background: #000;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             font-weight: bold;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+            border: 1px solid #333;
         }
         .player-status { width: 45%; }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin: 30px 0;
+
+        /* 時計盤レイアウト用コンテナ */
+        .chair-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 40px auto;
+            border-radius: 50%;
+            background: radial-gradient(circle, #2a2a2a 0%, #1a1a1a 100%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0, 210, 255, 0.1);
+            border: 2px solid #333;
         }
+
+        /* 時計盤のボタン */
         .chair-btn {
-            background: white;
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            padding: 20px 0;
-            font-size: 24px;
+            position: absolute;
+            width: 54px; 
+            height: 54px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            font-size: 22px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease-out;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .chair-btn:hover:not(:disabled) {
             border-color: var(--primary);
-            background: #e7f1ff;
+            background: #004455;
+            box-shadow: 0 0 15px var(--primary);
+            transform: translate(-50%, -50%) scale(1.1);
         }
         .chair-btn:disabled {
-            background: #e9ecef;
-            color: #adb5bd;
-            border-color: #dee2e6;
+            background: #111;
+            color: #555;
+            border-color: #222;
             cursor: not-allowed;
+            box-shadow: none;
         }
+
         .action-btn {
-            background: var(--primary);
+            background: linear-gradient(135deg, #005c8a, #0099cc);
             color: white;
-            border: none;
+            border: 1px solid #00d2ff;
             padding: 15px 30px;
             font-size: 18px;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
             font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+            transition: all 0.2s;
         }
-        .action-btn:hover { background: #0056b3; }
+        .action-btn:hover { 
+            background: linear-gradient(135deg, #0077b3, #00bfff);
+            box-shadow: 0 4px 20px rgba(0, 210, 255, 0.6);
+        }
         .result-box {
             font-size: 24px;
             font-weight: bold;
             margin: 20px 0;
             padding: 20px;
             border-radius: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
-        .result-safe { background: #d4edda; color: var(--success); }
-        .result-shock { background: #f8d7da; color: var(--danger); }
+        .result-safe { 
+            background: rgba(51, 255, 119, 0.2); 
+            color: var(--success); 
+            border: 1px solid var(--success);
+            box-shadow: 0 0 20px rgba(51, 255, 119, 0.3);
+        }
+        .result-shock { 
+            background: rgba(255, 51, 51, 0.2); 
+            color: var(--danger); 
+            border: 1px solid var(--danger);
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+        }
         .turn-indicator { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+
+        /* --- 電流ショック演出用CSS --- */
+        @keyframes shock-flash {
+            0%   { background-color: #fff; }
+            10%  { background-color: #f00; }
+            20%  { background-color: #000; }
+            30%  { background-color: #ff0; }
+            40%  { background-color: #111; }
+            50%  { background-color: #f00; }
+            60%  { background-color: #fff; }
+            70%  { background-color: #000; }
+            80%  { background-color: #f00; }
+            90%  { background-color: #ff0; }
+            100% { background-color: #111; }
+        }
+        @keyframes shock-shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-10px, -20px) rotate(-3deg); }
+            20% { transform: translate(-30px, 0px) rotate(3deg); }
+            30% { transform: translate(30px, 20px) rotate(0deg); }
+            40% { transform: translate(10px, -10px) rotate(3deg); }
+            50% { transform: translate(-10px, 20px) rotate(-3deg); }
+            60% { transform: translate(-30px, 10px) rotate(0deg); }
+            70% { transform: translate(30px, 10px) rotate(-3deg); }
+            80% { transform: translate(-10px, -10px) rotate(3deg); }
+            90% { transform: translate(10px, 20px) rotate(0deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
+        }
+        body.shock-active {
+            animation: shock-flash 0.3s ease-in-out infinite;
+        }
+        body.shock-active #app {
+            animation: shock-shake 0.1s ease-in-out infinite;
+            box-shadow: 0 0 50px #f00;
+        }
+        .thunder-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 0, 0, 0.4);
+            z-index: 9999;
+            pointer-events: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 200px;
+            text-shadow: 0 0 50px #ff0, 0 0 100px #fff;
+        }
+        body.shock-active .thunder-overlay { 
+            display: flex; 
+        }
     </style>
 </head>
 <body>
 
+<!-- 電撃エフェクトのオーバーレイ -->
+<div class="thunder-overlay">⚡</div>
+
 <div id="app">
-    <!-- ステータス表示 (ゲーム中常に上部に表示) -->
+    <!-- ステータス表示 -->
     <div id="status-header" style="display: none;">
         <div class="status-board">
             <div class="player-status" id="p1-status">P1: 0pt (✖:0)</div>
@@ -107,35 +210,35 @@
     <!-- スタート画面 -->
     <div id="screen-start" class="screen active">
         <h1>電気イスゲーム</h1>
-        <p>1つのタブレットを2人で交互に操作します。<br>相手の操作中は画面を見ないでください。</p>
+        <p style="color:#aaa;">1つのタブレットを2人で交互に操作します。<br>相手の操作中は画面を見ないでください。</p>
         <button class="action-btn" onclick="startGame()">ゲーム開始</button>
     </div>
 
     <!-- 端末受け渡し画面 -->
     <div id="screen-pass" class="screen">
         <h1 id="pass-message"></h1>
-        <p>画面を見られないようにして、準備ができたらボタンを押してください。</p>
+        <p style="color:#aaa;">画面を見られないようにして、準備ができたらボタンを押してください。</p>
         <button class="action-btn" onclick="readyForAction()">準備OK</button>
     </div>
 
-    <!-- イス選択画面 (仕掛け / 座る) -->
+    <!-- イス選択画面 -->
     <div id="screen-select" class="screen">
         <div class="turn-indicator" id="turn-instruction"></div>
-        <div class="grid" id="chair-grid"></div>
+        <div class="chair-container" id="chair-grid"></div>
     </div>
 
     <!-- 結果画面 -->
     <div id="screen-result" class="screen">
         <h1 id="result-title"></h1>
         <div id="result-box" class="result-box"></div>
-        <p id="result-detail"></p>
+        <p id="result-detail" style="white-space: pre-line; color:#ccc; line-height:1.6;"></p>
         <button class="action-btn" onclick="nextPhase()">次へ</button>
     </div>
 
     <!-- 終了画面 -->
     <div id="screen-end" class="screen">
         <h1>ゲーム終了！</h1>
-        <div id="final-result" class="result-box" style="background:#fff3cd; color:#856404;"></div>
+        <div id="final-result" class="result-box" style="background:rgba(255,215,0,0.2); color:#ffd700; border:1px solid #ffd700; box-shadow:0 0 20px rgba(255,215,0,0.3); white-space:pre-line;"></div>
         <button class="action-btn" onclick="location.reload()">もう一度遊ぶ</button>
     </div>
 </div>
@@ -146,8 +249,8 @@
         { id: 1, name: "プレイヤー1", score: 0, shocks: 0 },
         { id: 2, name: "プレイヤー2", score: 0, shocks: 0 }
     ];
-    let turn = 1; // 奇数: P1仕掛け/P2座る, 偶数: P2仕掛け/P1座る
-    let phase = "set"; // "set" (仕掛け) or "sit" (座る)
+    let turn = 1; 
+    let phase = "set"; 
     let trappedChair = null;
 
     function getSetter() { return turn % 2 !== 0 ? players[0] : players[1]; }
@@ -190,24 +293,42 @@
             : `【${activePlayer.name}のターン】<br>座るイスを選んでください`;
 
         document.getElementById('turn-instruction').innerHTML = instructionText;
-        renderChairs();
+        renderChairsClockFace();
         showScreen('screen-select');
     }
 
-    function renderChairs() {
-        const grid = document.getElementById('chair-grid');
-        grid.innerHTML = '';
+    function renderChairsClockFace() {
+        const container = document.getElementById('chair-grid');
+        container.innerHTML = '';
+
+        // 時計盤の半径と中心の座標設定 (コンテナ300x300の場合)
+        const radius = 120; 
+        const centerX = 150;
+        const centerY = 150;
+
         for (let i = 1; i <= 12; i++) {
             const btn = document.createElement('button');
             btn.className = 'chair-btn';
             btn.innerText = i;
+
+            // 角度の計算 (12時は-90度、1時間は30度)
+            const angleDeg = (i * 30) - 90;
+            const angleRad = angleDeg * (Math.PI / 180);
+
+            // x, y 座標の計算
+            const x = centerX + radius * Math.cos(angleRad);
+            const y = centerY + radius * Math.sin(angleRad);
+
+            btn.style.left = `${x}px`;
+            btn.style.top = `${y}px`;
+
             if (!chairs.includes(i)) {
                 btn.disabled = true;
                 btn.innerText = '✖';
             } else {
                 btn.onclick = () => handleChairClick(i);
             }
-            grid.appendChild(btn);
+            container.appendChild(btn);
         }
     }
 
@@ -223,30 +344,46 @@
 
     function processResult(chairNum) {
         const sitter = getSitter();
+
+        // 座ったイスをゲームから除外
+        chairs = chairs.filter(c => c !== chairNum);
+
+        if (chairNum === trappedChair) {
+            // 失敗 (電流) -> エフェクト発動
+            sitter.score = 0;
+            sitter.shocks += 1;
+
+            document.body.classList.add('shock-active');
+
+            // 1.5秒後にエフェクトを解除して結果画面へ
+            setTimeout(() => {
+                document.body.classList.remove('shock-active');
+                showResultScreenData(chairNum, true, sitter);
+            }, 1500);
+        } else {
+            // 成功 (セーフ)
+            sitter.score += chairNum;
+            showResultScreenData(chairNum, false, sitter);
+        }
+    }
+
+    function showResultScreenData(chairNum, isShock, sitter) {
         const resultBox = document.getElementById('result-box');
         const resultDetail = document.getElementById('result-detail');
 
         document.getElementById('result-title').innerText = `${sitter.name} の結果`;
 
-        if (chairNum === trappedChair) {
-            // 失敗 (電流)
-            sitter.score = 0;
-            sitter.shocks += 1;
+        if (isShock) {
             resultBox.className = 'result-box result-shock';
             resultBox.innerText = '⚡ ビリビリ！！電流が流れました ⚡';
             resultDetail.innerText = `イス${chairNum}番には電流が仕掛けられていました。
 ポイントが0になり、感電回数が${sitter.shocks}回になりました。`;
         } else {
-            // 成功 (セーフ)
-            sitter.score += chairNum;
             resultBox.className = 'result-box result-safe';
             resultBox.innerText = '✨ セーフ！ ✨';
             resultDetail.innerText = `電流はありませんでした。
 ${chairNum}ポイントを獲得しました！`;
         }
-
-        // 座ったイスをゲームから除外
-        chairs = chairs.filter(c => c !== chairNum);
 
         updateStatusBoard();
         showScreen('screen-result');
@@ -256,7 +393,6 @@ ${chairNum}ポイントを獲得しました！`;
         const sitter = getSitter();
         const setter = getSetter();
 
-        // 終了判定
         if (sitter.shocks >= 3) {
             endGame(`${setter.name} の勝利！
 (${sitter.name} が3回感電しました)`);
@@ -281,7 +417,6 @@ ${chairNum}ポイントを獲得しました！`;
             return;
         }
 
-        // ターン切り替え
         turn++;
         phase = "set";
         preparePassScreen();
