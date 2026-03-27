@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あそびのメニュー</title>
+    <style>
+        /* 全体の設定：親しみやすい丸ゴシック系のフォントを指定し、背景を優しい色に */
+        body {
+            font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', 'Meiryo', sans-serif;
+            background-color: #fdf5e6;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        /* ボタンを並べるレイアウト：画面サイズに合わせて自動で折り返し */
+        .menu-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* ボタンの共通スタイル：大きく、角を丸く、押しやすくする */
+        .menu-btn {
+            display: block;
+            padding: 25px 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.1s;
+        }
+
+        /* 押した時のへこむアニメーション */
+        .menu-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* 各ボタンの色設定 */
+        .btn-orange { background-color: #ff8a65; box-shadow: 0 4px 0 #e64a19; }
+        .btn-yellow { background-color: #ffd54f; color: #555; box-shadow: 0 4px 0 #ffa000; }
+        .btn-green  { background-color: #81c784; box-shadow: 0 4px 0 #388e3c; }
+        .btn-blue   { background-color: #64b5f6; box-shadow: 0 4px 0 #1976d2; }
+        .btn-pink   { background-color: #f06292; box-shadow: 0 4px 0 #c2185b; }
+        .btn-purple { background-color: #ba68c8; box-shadow: 0 4px 0 #7b1fa2; }
+
+    </style>
+</head>
+<body>
+
+    <h1>あそびのメニュー</h1>
+
+    <div class="menu-container">
+        <a href="anaume.html" class="menu-btn btn-orange">ひらがなクイズ</a>
+        <a href="denki_game.html" class="menu-btn btn-yellow">でんきいすゲーム</a>
+        <a href="hiragana.html" class="menu-btn btn-green">なまえくいず</a>
+        <a href="maze.html" class="menu-btn btn-blue">こねこめいろ</a>
+        <a href="oekaki.html" class="menu-btn btn-pink">おえかき</a>
+        <a href="othello.html" class="menu-btn btn-purple">おせろ</a>
+    </div>
+
+</body>
+</html>
