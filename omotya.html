@@ -50,13 +50,14 @@
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     button { font-family: inherit; }
 
     #app {
       max-width: 480px;
-      min-height: 100vh;
+      min-height: 100svh;
       margin: 0 auto;
       padding: 12px 14px 18px;
       display: flex;
@@ -64,6 +65,7 @@
       justify-content: space-between;
       gap: 10px;
       position: relative;
+      box-sizing: border-box;
     }
 
     #topbar {
@@ -113,7 +115,8 @@
 
     #play-area {
       flex: 1;
-      min-height: 320px;
+      min-height: 240px;
+      max-height: min(50vh, 320px);
       display: flex;
       align-items: flex-end;
       justify-content: center;
@@ -265,7 +268,8 @@
       transition: transform 0.2s ease;
       transform-origin: center bottom;
       z-index: 4;
-      margin-bottom: 34px;
+      margin-bottom: 14px;
+      transform: scale(0.88);
     }
     #head-wrap {
       position: relative;
@@ -515,7 +519,7 @@
 
     #status {
       min-height: 40px;
-      font-size: 1.25rem;
+      font-size: clamp(1.1rem, 2.5vw, 1.25rem);
       font-weight: 800;
       color: #6b5b53;
       position: relative;
@@ -525,17 +529,18 @@
     #choices {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: clamp(8px, 2vw, 10px);
       padding-bottom: 6px;
       position: relative;
       z-index: 5;
+      margin-bottom: max(12px, env(safe-area-inset-bottom));
     }
     .choice-btn {
       background: #fff;
       border: 3px solid #d9d9d9;
       border-radius: 18px;
-      height: 92px;
-      font-size: 3.2rem;
+      height: clamp(68px, 16vw, 78px);
+      font-size: clamp(2.3rem, 6vw, 2.7rem);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -601,6 +606,153 @@
       border-radius: 26px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.15);
       padding: 24px 18px 20px;
+    }
+
+    #tap-next {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.92);
+      border: 3px solid #ffd0dc;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #7a5a4c;
+      z-index: 12;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    #tap-next.show { display: block; }
+
+    #all-babies {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 6px;
+      margin: 12px 0 18px;
+    }
+
+    .mini-baby {
+      position: relative;
+      width: 96px;
+      height: 120px;
+      animation: miniBounce 0.65s infinite alternate;
+    }
+
+    .mini-toy {
+      position: absolute;
+      left: 50%;
+      top: 58px;
+      transform: translateX(-50%);
+      font-size: 1.8rem;
+      z-index: 5;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,0.12));
+    }
+
+    .mini-head {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 58px;
+      height: 58px;
+      background: #ffd9bd;
+      border: 3px solid #e7b08d;
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    .mini-hair {
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 34px;
+      height: 14px;
+      background: #6b4b3b;
+      border-radius: 0 0 12px 12px;
+      z-index: 3;
+    }
+
+    .mini-face-eye {
+      position: absolute;
+      top: 24px;
+      width: 7px;
+      height: 10px;
+      background: #2f2a2a;
+      border-radius: 50%;
+    }
+
+    .mini-face-eye.left { left: 14px; }
+    .mini-face-eye.right { right: 14px; }
+
+    .mini-mouth {
+      position: absolute;
+      left: 50%;
+      top: 36px;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 8px;
+      border-bottom: 3px solid #7f5f52;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .mini-body {
+      position: absolute;
+      left: 50%;
+      top: 50px;
+      transform: translateX(-50%);
+      width: 68px;
+      height: 56px;
+      border-radius: 18px 18px 22px 22px;
+      border: 3px solid rgba(0,0,0,0.12);
+    }
+
+    .mini-body.blue { background: #9fd7ff; }
+    .mini-body.pink { background: #ffb8c8; }
+    .mini-body.purple { background: #bca8ff; }
+
+    #confetti {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      border-radius: 26px;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -12px;
+      width: 10px;
+      height: 18px;
+      border-radius: 4px;
+      opacity: 0.9;
+      animation: confettiFall linear infinite;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 1.2rem;
+      animation: sparkleTwinkle 1.2s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes miniBounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-8px); }
+    }
+
+    @keyframes confettiFall {
+      0% { transform: translateY(-10px) rotate(0deg); }
+      100% { transform: translateY(260px) rotate(360deg); }
+    }
+
+    @keyframes sparkleTwinkle {
+      from { transform: scale(0.8) rotate(0deg); opacity: 0.5; }
+      to { transform: scale(1.15) rotate(18deg); opacity: 1; }
     }
     .modal .big { font-size: 4rem; margin-bottom: 10px; }
     .modal h2 { margin: 0 0 10px; font-size: 2rem; }
@@ -670,13 +822,24 @@
 
     <div id="status"></div>
     <div id="choices"></div>
+    <div id="tap-next">タップで つぎへ</div>
   </div>
 
   <div id="overlay">
     <div class="modal">
       <div class="big">🎉</div>
       <h2>おしまい</h2>
-      <p>3にんの あかちゃんを たすけたよ！</p>
+      <div id="all-babies">
+        <div id="confetti"></div>
+        <div class="sparkle" style="left:18px; top:6px;">✨</div>
+        <div class="sparkle" style="left:84px; top:18px; animation-delay:0.3s;">⭐️</div>
+        <div class="sparkle" style="right:84px; top:14px; animation-delay:0.5s;">✨</div>
+        <div class="sparkle" style="right:20px; top:28px; animation-delay:0.8s;">🌟</div>
+        <div class="mini-baby"><div class="mini-head"><div class="mini-hair"></div><div class="mini-face-eye left"></div><div class="mini-face-eye right"></div><div class="mini-mouth"></div></div><div class="mini-toy">🧸</div><div class="mini-body blue"></div></div>
+        <div class="mini-baby" style="animation-delay:0.12s;"><div class="mini-head"><div class="mini-hair" style="background:#5a4134;"></div><div class="mini-face-eye left"></div><div class="mini-face-eye right"></div><div class="mini-mouth"></div></div><div class="mini-toy">🎈</div><div class="mini-body pink"></div></div>
+        <div class="mini-baby" style="animation-delay:0.24s;"><div class="mini-head"><div class="mini-hair" style="background:#704f40;"></div><div class="mini-face-eye left"></div><div class="mini-face-eye right"></div><div class="mini-mouth"></div></div><div class="mini-toy">🚗</div><div class="mini-body purple"></div></div>
+      </div>
+      <p>3にんの あかちゃんをたすけたよ！</p>
       <button id="restartBtn">もういちど あそぶ</button>
     </div>
   </div>
@@ -691,19 +854,19 @@
       {emoji: "🐟", word: "さかな"}, {emoji: "🦌", word: "しか"},
       {emoji: "🍉", word: "すいか"}, {emoji: "🍘", word: "せんべい"},
       {emoji: "🍦", word: "そふとくりーむ"}, {emoji: "🐙", word: "たこ"},
-      {emoji: "🧀", word: "ちーず"}, {emoji: "🌙", word: "つき"},
-      {emoji: "🐞", word: "てんとうむし"}, {emoji: "⏰", word: "とけい"},
+      {emoji: "🧀", word: "ちーず"}, {emoji: "🌙️", word: "つき"},
+      {emoji: "🐞", word: "てんとうむし"}, {emoji: "⏰️", word: "とけい"},
       {emoji: "🍆", word: "なす"}, {emoji: "🥕", word: "にんじん"},
       {emoji: "🧸", word: "ぬいぐるみ"}, {emoji: "🐱", word: "ねこ"},
       {emoji: "🪚", word: "のこぎり"}, {emoji: "✂️", word: "はさみ"},
       {emoji: "✈️", word: "ひこうき"}, {emoji: "🎈", word: "ふうせん"},
-      {emoji: "🐍", word: "へび"}, {emoji: "⭐", word: "ほし"},
+      {emoji: "🐍", word: "へび"}, {emoji: "⭐️", word: "ほし"},
       {emoji: "🧣", word: "まふらー"}, {emoji: "🍊", word: "みかん"},
-      {emoji: "🔎", word: "むしめがね"}, {emoji: "👓", word: "めがね"},
+      {emoji: "🔍", word: "むしめがね"}, {emoji: "👓️", word: "めがね"},
       {emoji: "🍑", word: "もも"}, {emoji: "⛰️", word: "やま"},
-      {emoji: "⛄", word: "ゆきだるま"}, {emoji: "⛵", word: "よっと"},
+      {emoji: "⛄", word: "ゆきだるま"}, {emoji: "⛵️", word: "よっと"},
       {emoji: "🦁", word: "らいおん"}, {emoji: "🍎", word: "りんご"},
-      {emoji: "💃", word: "るんば"}, {emoji: "🍋", word: "れもん"},
+      {emoji: "🔔", word: "べる"}, {emoji: "🍋", word: "れもん"},
       {emoji: "🚀", word: "ろけっと"}, {emoji: "🐊", word: "わに"},
       {emoji: "💩", word: "うんち"}
     ];
@@ -721,7 +884,7 @@
       },
       {
         wallLeft: '#f1e8ff', wallRight: '#def8e7', floor: '#d6aa84', mat: '#fff0a8', curtain: '#e8d5ff',
-        poster: '⭐🌈', shelf: ['🎈','🧸','🪁'], toybox: '#ffb67d', toyboxLine: '#d98949',
+        poster: '⭐️🌈', shelf: ['🎈','🧸','🪁'], toybox: '#ffb67d', toyboxLine: '#d98949',
         onesie: '#bca8ff', onesieLine: '#8c78db', bib: '#dffff4', bibLine: '#a5d8c5', hair: '#704f40'
       }
     ];
@@ -735,6 +898,7 @@
     const questionNoEl = document.getElementById('questionNo');
     const overlay = document.getElementById('overlay');
     const restartBtn = document.getElementById('restartBtn');
+    const tapNext = document.getElementById('tap-next');
     const posterIcons = document.querySelector('#poster .icons');
     const shelfToys = [
       document.querySelector('.shelf-toy.a'),
@@ -744,6 +908,7 @@
 
     let currentTarget = null;
     let isLocked = false;
+    let waitingNext = false;
     let solvedCount = 0;
     let questionNo = 1;
     const totalQuestions = 3;
@@ -800,11 +965,13 @@
         return;
       }
       isLocked = false;
+      waitingNext = false;
+      tapNext.classList.remove('show');
       setTheme(questionNo - 1);
       toy.textContent = '';
       toy.classList.remove('show');
       setBabyState('crying');
-      statusEl.textContent = 'なきやませてあげよう';
+      statusEl.textContent = 'おもちゃをとってあげよう';
       choicesContainer.innerHTML = '';
       updateTopbar();
       const options = pickQuestion();
@@ -829,26 +996,53 @@
         toy.textContent = item.emoji;
         toy.classList.add('show');
         setBabyState('playing');
-        statusEl.textContent = (questionNo) + 'にんめの あかちゃんと ' + currentTarget.word + ' で あそべた！';
+        statusEl.textContent = questionNo + 'にんめの あかちゃんに ' + currentTarget.word + ' をあげた！';
         updateTopbar();
-        setTimeout(() => {
-          questionNo += 1;
-          renderQuestion();
-        }, 1700);
+        waitingNext = true;
+        tapNext.classList.add('show');
       } else {
         btn.classList.add('wrong');
-        statusEl.textContent = 'ちがうみたい';
+        statusEl.textContent = 'ちがうよー';
         setTimeout(() => btn.classList.remove('wrong'), 350);
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!waitingNext) return;
+      if (e.target.closest('.choice-btn')) return;
+      waitingNext = false;
+      tapNext.classList.remove('show');
+      questionNo += 1;
+      renderQuestion();
+    });
+
+    const confetti = document.getElementById('confetti');
+    const confettiColors = ['#ff7aa8', '#ffd54f', '#7fd6ff', '#9b8cff', '#7ee39d'];
+
+    function buildConfetti() {
+      confetti.innerHTML = '';
+      for (let i = 0; i < 18; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = (i * 5.2 + Math.random() * 4) + '%';
+        piece.style.background = confettiColors[i % confettiColors.length];
+        piece.style.animationDuration = (1.8 + Math.random() * 1.4) + 's';
+        piece.style.animationDelay = (Math.random() * 1.2) + 's';
+        piece.style.transform = 'rotate(' + Math.floor(Math.random() * 180) + 'deg)';
+        confetti.appendChild(piece);
       }
     }
 
     restartBtn.addEventListener('click', () => {
       solvedCount = 0;
       questionNo = 1;
+      waitingNext = false;
+      tapNext.classList.remove('show');
       overlay.classList.remove('show');
       renderQuestion();
     });
 
+    buildConfetti();
     renderQuestion();
   </script>
 </body>
