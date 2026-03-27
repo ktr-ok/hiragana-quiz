@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>保育園ひらがなゲーム</title>
+  <style>
+    :root {
+      --bg1: #fff8e8;
+      --bg2: #ffeef7;
+      --panel: #ffffff;
+      --pink: #ffb6c1;
+      --line: #7f5f52;
+      --skin: #ffd9bd;
+      --skin-line: #e7b08d;
+      --hair: #6b4b3b;
+      --onesie: #9fd7ff;
+      --onesie-line: #68b7ef;
+      --wrong: #ff6b6b;
+      --ok: #7bd87b;
+      --text: #43332c;
+      --shadow: rgba(0,0,0,0.12);
+      --eye: #2f2a2a;
+      --blush: rgba(255, 138, 167, 0.45);
+      --tear: #8fd6ff;
+      --wall-left: #fff3b8;
+      --wall-right: #ffe3ef;
+      --floor: #d8b38a;
+      --mat: #c9f0d7;
+      --window: #dff3ff;
+      --curtain: #ffd6ec;
+      --shelf: #d9a574;
+      --shelf-line: #b57d4f;
+      --toybox: #ffcf6b;
+      --toybox-line: #d89d2c;
+      --poster: #fff;
+      --poster-line: #f2bfd0;
+      --bib: #fff6b8;
+      --bib-line: #f1dd7c;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
+      font-family: 'Hiragino Maru Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+      color: var(--text);
+      text-align: center;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    button { font-family: inherit; }
+
+    #app {
+      max-width: 480px;
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 12px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    #topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 4px 2px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .pill {
+      background: #fff;
+      border: 3px solid #ffd6e0;
+      border-radius: 999px;
+      padding: 6px 12px;
+      box-shadow: 0 3px 0 #f1c7d2;
+    }
+
+    #speech-bubble {
+      background: var(--panel);
+      border: 4px solid var(--pink);
+      border-radius: 22px;
+      padding: 14px 20px;
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 800;
+      position: relative;
+      box-shadow: 0 6px 14px var(--shadow);
+      z-index: 5;
+    }
+    #speech-bubble::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: -16px;
+      border-width: 16px 14px 0 14px;
+      border-style: solid;
+      border-color: var(--pink) transparent transparent transparent;
+    }
+
+    #play-area {
+      flex: 1;
+      min-height: 240px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      position: relative;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,0.45), 0 8px 18px rgba(0,0,0,0.08);
+    }
+
+    #scene-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--wall-left) 0 50%, var(--wall-right) 50% 100%);
+    }
+    #window {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      width: 102px;
+      height: 78px;
+      background: var(--window);
+      border: 5px solid #fff;
+      border-radius: 14px;
+      box-shadow: 0 0 0 3px #d2e9f8;
+    }
+    #window::before,
+    #window::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+    }
+    #window::before { width: 5px; height: 100%; left: 48px; top: 0; }
+    #window::after { height: 5px; width: 100%; left: 0; top: 36px; }
+    .curtain {
+      position: absolute;
+      top: 18px;
+      width: 24px;
+      height: 90px;
+      background: var(--curtain);
+      border-radius: 14px;
+      box-shadow: inset -6px 0 0 rgba(255,255,255,0.3);
+    }
+    .curtain.left { left: 14px; }
+    .curtain.right { left: 112px; }
+
+    #poster {
+      position: absolute;
+      top: 30px;
+      right: 28px;
+      width: 86px;
+      height: 104px;
+      background: var(--poster);
+      border: 4px solid var(--poster-line);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+      font-weight: 800;
+      color: #8a6d61;
+      font-size: 1.2rem;
+    }
+    #poster .icons { font-size: 1.6rem; }
+
+    #shelf {
+      position: absolute;
+      left: 18px;
+      bottom: 82px;
+      width: 120px;
+      height: 18px;
+      background: var(--shelf);
+      border: 4px solid var(--shelf-line);
+      border-radius: 12px;
+    }
+    #shelf::before, #shelf::after {
+      content: '';
+      position: absolute;
+      bottom: -34px;
+      width: 8px;
+      height: 34px;
+      background: var(--shelf-line);
+      border-radius: 6px;
+    }
+    #shelf::before { left: 18px; }
+    #shelf::after { right: 18px; }
+    .shelf-toy {
+      position: absolute;
+      bottom: 12px;
+      font-size: 1.5rem;
+    }
+    .shelf-toy.a { left: 12px; }
+    .shelf-toy.b { left: 46px; }
+    .shelf-toy.c { left: 80px; }
+
+    #toybox {
+      position: absolute;
+      right: 26px;
+      bottom: 40px;
+      width: 94px;
+      height: 56px;
+      background: var(--toybox);
+      border: 4px solid var(--toybox-line);
+      border-radius: 16px 16px 18px 18px;
+    }
+    #toybox::before {
+      content: '';
+      position: absolute;
+      top: -16px;
+      left: 6px;
+      width: 78px;
+      height: 18px;
+      background: #ffe08a;
+      border: 4px solid var(--toybox-line);
+      border-bottom: none;
+      border-radius: 14px 14px 0 0;
+      transform: skewX(-10deg);
+    }
+
+    #floor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 82px;
+      background: var(--floor);
+      box-shadow: inset 0 8px 0 rgba(255,255,255,0.14);
+    }
+    #mat {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      width: 210px;
+      height: 42px;
+      background: var(--mat);
+      border-radius: 999px;
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.06);
+    }
+
+    #baby {
+      position: relative;
+      width: 250px;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      transition: transform 0.2s ease;
+      transform-origin: center bottom;
+      z-index: 4;
+      margin-bottom: 14px;
+      transform: scale(0.88);
+    }
+    #head-wrap {
+      position: relative;
+      width: 170px;
+      height: 162px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 3;
+    }
+    #baby-face {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin-top: 8px;
+      background: var(--skin);
+      border-radius: 48% 48% 46% 46% / 44% 44% 54% 54%;
+      z-index: 3;
+      overflow: hidden;
+      box-shadow: inset 0 -6px 0 rgba(255,255,255,0.13);
+    }
+    #baby-face::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 4px solid var(--skin-line);
+      border-radius: inherit;
+      z-index: 2;
+      pointer-events: none;
+      clip-path: inset(22px 0 0 0);
+    }
+    #hair-back {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 156px;
+      height: 126px;
+      background: var(--hair);
+      border-radius: 52% 52% 44% 44% / 56% 56% 42% 42%;
+      z-index: 1;
+    }
+    #hair-front {
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 86px;
+      height: 26px;
+      background: var(--hair);
+      border-radius: 0 0 24px 24px;
+      z-index: 8;
+    }
+    #hair-front::before,
+    #hair-front::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      width: 18px;
+      height: 18px;
+      background: var(--hair);
+      border-radius: 0 0 14px 14px;
+      z-index: 8;
+    }
+    #hair-front::before { left: 12px; transform: rotate(10deg); }
+    #hair-front::after { right: 10px; transform: rotate(-14deg); }
+    #hair-front i {
+      position: absolute;
+      left: 50%;
+      top: 14px;
+      width: 16px;
+      height: 20px;
+      margin-left: -8px;
+      background: var(--hair);
+      border-radius: 0 0 14px 14px;
+      transform: rotate(-4deg);
+      display: block;
+      z-index: 8;
+    }
+
+    .eye {
+      position: absolute;
+      top: 60px;
+      width: 22px;
+      height: 28px;
+      background: var(--eye);
+      border-radius: 48% 48% 50% 50%;
+      z-index: 5;
+      transition: all 0.2s ease;
+    }
+    .eye.left { left: 36px; }
+    .eye.right { right: 36px; }
+    .eye::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: 7px;
+      height: 7px;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .brow {
+      position: absolute;
+      top: 49px;
+      width: 24px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(80,56,43,0.75);
+      z-index: 5;
+      transition: all 0.2s ease;
+    }
+    .brow.left { left: 34px; transform: rotate(-6deg); }
+    .brow.right { right: 34px; transform: rotate(6deg); }
+    .cheek {
+      position: absolute;
+      top: 86px;
+      width: 24px;
+      height: 14px;
+      background: var(--blush);
+      border-radius: 50%;
+      z-index: 4;
+    }
+    .cheek.left { left: 18px; }
+    .cheek.right { right: 18px; }
+    .tear {
+      position: absolute;
+      top: 82px;
+      width: 10px;
+      height: 18px;
+      background: var(--tear);
+      border-radius: 50% 50% 60% 60%;
+      opacity: 0;
+      z-index: 5;
+      transition: opacity 0.2s ease;
+    }
+    .tear.left { left: 28px; transform: rotate(10deg); }
+    .tear.right { right: 28px; transform: rotate(-10deg); }
+    #mouth {
+      position: absolute;
+      left: 50%;
+      top: 96px;
+      transform: translateX(-50%);
+      width: 34px;
+      height: 18px;
+      z-index: 5;
+      transition: all 0.2s ease;
+    }
+
+    #baby-body {
+      position: relative;
+      width: 164px;
+      height: 132px;
+      margin-top: -10px;
+      background: var(--onesie);
+      border: 4px solid var(--onesie-line);
+      border-radius: 30px 30px 40px 40px;
+      z-index: 2;
+      box-shadow: inset 0 -8px 0 rgba(255,255,255,0.14);
+    }
+    #bib {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 54px;
+      height: 42px;
+      background: var(--bib);
+      border: 3px solid var(--bib-line);
+      border-radius: 18px 18px 20px 20px;
+    }
+    #bib::after {
+      content: '★';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f0b300;
+      font-size: 1.1rem;
+      font-weight: 900;
+    }
+    .arm {
+      position: absolute;
+      top: 24px;
+      width: 40px;
+      height: 90px;
+      background: var(--skin);
+      border: 4px solid var(--skin-line);
+      border-radius: 24px;
+      z-index: 1;
+      transform-origin: top center;
+      transition: transform 0.25s ease;
+    }
+    .arm.left { left: -20px; transform: rotate(24deg); }
+    .arm.right { right: -20px; transform: rotate(-24deg); }
+    .hand {
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 26px;
+      height: 26px;
+      background: var(--skin);
+      border: 3px solid var(--skin-line);
+      border-radius: 50%;
+    }
+    .leg {
+      position: absolute;
+      bottom: -30px;
+      width: 38px;
+      height: 60px;
+      background: var(--skin);
+      border: 4px solid var(--skin-line);
+      border-radius: 22px;
+    }
+    .leg.left { left: 30px; }
+    .leg.right { right: 30px; }
+    .foot {
+      position: absolute;
+      bottom: -8px;
+      width: 34px;
+      height: 18px;
+      background: #fff;
+      border: 3px solid #ddd;
+      border-radius: 14px;
+    }
+    .leg.left .foot, .leg.right .foot { left: -1px; }
+
+    #toy {
+      position: absolute;
+      top: 136px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      font-size: 4.2rem;
+      line-height: 1;
+      opacity: 0;
+      z-index: 6;
+      transition: opacity 0.2s ease, transform 0.25s ease;
+      filter: drop-shadow(0 3px 1px rgba(0,0,0,0.12));
+      pointer-events: none;
+    }
+    #toy.show {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    #status {
+      min-height: 40px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #6b5b53;
+      position: relative;
+      z-index: 5;
+    }
+
+    #choices {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding-bottom: 6px;
+      position: relative;
+      z-index: 5;
+      margin-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+    .choice-btn {
+      background: #fff;
+      border: 3px solid #d9d9d9;
+      border-radius: 18px;
+      height: 78px;
+      font-size: 2.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 0 #d5d5d5;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .choice-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #d5d5d5;
+    }
+    .choice-btn.wrong { border-color: var(--wrong); animation: shake 0.35s; }
+    .choice-btn.correct { border-color: var(--ok); background: #f3fff3; }
+
+    .state-crying .tear { opacity: 1; }
+    .state-crying .eye { width: 18px; height: 22px; top: 63px; }
+    .state-crying .brow.left { transform: rotate(-18deg); top: 52px; }
+    .state-crying .brow.right { transform: rotate(18deg); top: 52px; }
+    .state-crying #mouth {
+      border-top: 4px solid var(--line);
+      border-radius: 50% 50% 0 0;
+      width: 30px;
+      height: 14px;
+      top: 104px;
+    }
+    .state-happy .tear { opacity: 0; }
+    .state-happy #mouth {
+      border-bottom: 4px solid var(--line);
+      border-radius: 0 0 24px 24px;
+      width: 34px;
+      height: 16px;
+      top: 96px;
+    }
+    .state-playing .tear { opacity: 0; }
+    .state-playing #mouth {
+      width: 28px;
+      height: 22px;
+      top: 94px;
+      border: 4px solid var(--line);
+      border-top: none;
+      border-radius: 0 0 18px 18px;
+      background: #ff9aa9;
+    }
+    .state-playing .arm.left { transform: rotate(-48deg) translate(10px, 10px); }
+    .state-playing .arm.right { transform: rotate(48deg) translate(-10px, 10px); }
+    .bounce { animation: bounce 0.55s infinite alternate; }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 247, 232, 0.94);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+    #overlay.show { display: flex; }
+    .modal {
+      width: min(92vw, 420px);
+      background: #fff;
+      border: 4px solid #ffd2df;
+      border-radius: 26px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      padding: 24px 18px 20px;
+    }
+    .modal .big { font-size: 4rem; margin-bottom: 10px; }
+    .modal h2 { margin: 0 0 10px; font-size: 2rem; }
+    .modal p { margin: 0 0 18px; font-size: 1.2rem; font-weight: 700; color: #6a5c52; }
+    #restartBtn {
+      width: 100%; border: none; border-radius: 18px; background: #ffb6c1; color: #fff;
+      font-size: 1.4rem; font-weight: 800; padding: 16px 12px; box-shadow: 0 5px 0 #ef95a6;
+    }
+    #restartBtn:active { transform: translateY(4px); box-shadow: 0 1px 0 #ef95a6; }
+
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-14px); } }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      50% { transform: translateX(6px); }
+      75% { transform: translateX(-6px); }
+      100% { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="topbar">
+      <div class="pill">もんだい <span id="questionNo">1</span> / 3</div>
+      <div class="pill">せいかい <span id="score">0</span></div>
+    </div>
+
+    <div id="speech-bubble">...</div>
+
+    <div id="play-area">
+      <div id="scene-bg"></div>
+      <div id="window"></div>
+      <div class="curtain left"></div>
+      <div class="curtain right"></div>
+      <div id="poster"><div>ほいくえん</div><div class="icons">🌷🖍️</div></div>
+      <div id="shelf"><div class="shelf-toy a">🧸</div><div class="shelf-toy b">🚗</div><div class="shelf-toy c">📚</div></div>
+      <div id="toybox"></div>
+      <div id="floor"></div>
+      <div id="mat"></div>
+
+      <div id="baby" class="state-crying">
+        <div id="toy"></div>
+        <div id="head-wrap">
+          <div id="hair-back"></div>
+          <div id="baby-face">
+            <div id="hair-front"><i></i></div>
+            <div class="brow left"></div>
+            <div class="brow right"></div>
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+            <div class="cheek left"></div>
+            <div class="cheek right"></div>
+            <div class="tear left"></div>
+            <div class="tear right"></div>
+            <div id="mouth"></div>
+          </div>
+        </div>
+        <div id="baby-body">
+          <div id="bib"></div>
+          <div class="arm left"><div class="hand"></div></div>
+          <div class="arm right"><div class="hand"></div></div>
+          <div class="leg left"><div class="foot"></div></div>
+          <div class="leg right"><div class="foot"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="choices"></div>
+  </div>
+
+  <div id="overlay">
+    <div class="modal">
+      <div class="big">🎉</div>
+      <h2>おしまい</h2>
+      <p>3にんの あかちゃんを たすけたよ！</p>
+      <button id="restartBtn">もういちど あそぶ</button>
+    </div>
+  </div>
+
+  <script>
+    const items = [
+      {emoji: "🐜", word: "あり"}, {emoji: "🍓", word: "いちご"},
+      {emoji: "🐄", word: "うし"}, {emoji: "✏", word: "えんぴつ"},
+      {emoji: "👹", word: "おに"}, {emoji: "☂", word: "かさ"},
+      {emoji: "🦒", word: "きりん"}, {emoji: "🐻", word: "くま"},
+      {emoji: "🍰", word: "けーき"}, {emoji: "🐨", word: "こあら"},
+      {emoji: "🐟", word: "さかな"}, {emoji: "🦌", word: "しか"},
+      {emoji: "🍉", word: "すいか"}, {emoji: "🍘", word: "せんべい"},
+      {emoji: "🍦", word: "そふとくりーむ"}, {emoji: "🐙", word: "たこ"},
+      {emoji: "🧀", word: "ちーず"}, {emoji: "🌙", word: "つき"},
+      {emoji: "🐞", word: "てんとうむし"}, {emoji: "⏰", word: "とけい"},
+      {emoji: "🍆", word: "なす"}, {emoji: "🥕", word: "にんじん"},
+      {emoji: "🧸", word: "ぬいぐるみ"}, {emoji: "🐱", word: "ねこ"},
+      {emoji: "🪚", word: "のこぎり"}, {emoji: "✂", word: "はさみ"},
+      {emoji: "✈", word: "ひこうき"}, {emoji: "🎈", word: "ふうせん"},
+      {emoji: "🐍", word: "へび"}, {emoji: "⭐", word: "ほし"},
+      {emoji: "🧣", word: "まふらー"}, {emoji: "🍊", word: "みかん"},
+      {emoji: "🔎", word: "むしめがね"}, {emoji: "👓", word: "めがね"},
+      {emoji: "🍑", word: "もも"}, {emoji: "⛰", word: "やま"},
+      {emoji: "⛄", word: "ゆきだるま"}, {emoji: "⛵", word: "よっと"},
+      {emoji: "🦁", word: "らいおん"}, {emoji: "🍎", word: "りんご"},
+      {emoji: "💃", word: "るんば"}, {emoji: "🍋", word: "れもん"},
+      {emoji: "🚀", word: "ろけっと"}, {emoji: "🐊", word: "わに"},
+      {emoji: "💩", word: "うんち"}
+    ];
+
+    const babyThemes = [
+      {
+        wallLeft: '#fff3b8', wallRight: '#ffe3ef', floor: '#d8b38a', mat: '#c9f0d7', curtain: '#ffd6ec',
+        poster: '🌷🖍️', shelf: ['🧸','🚗','📚'], toybox: '#ffcf6b', toyboxLine: '#d89d2c',
+        onesie: '#9fd7ff', onesieLine: '#68b7ef', bib: '#fff6b8', bibLine: '#f1dd7c', hair: '#6b4b3b'
+      },
+      {
+        wallLeft: '#e7f6ff', wallRight: '#fff1c9', floor: '#c99d7a', mat: '#ffd6de', curtain: '#cfe8ff',
+        poster: '☀️🎨', shelf: ['🪇','🧩','🐤'], toybox: '#89d8ff', toyboxLine: '#4ca7d1',
+        onesie: '#ffb8c8', onesieLine: '#ee879d', bib: '#ffffff', bibLine: '#ddd8e8', hair: '#5a4134'
+      },
+      {
+        wallLeft: '#f1e8ff', wallRight: '#def8e7', floor: '#d6aa84', mat: '#fff0a8', curtain: '#e8d5ff',
+        poster: '⭐🌈', shelf: ['🎈','🧸','🪁'], toybox: '#ffb67d', toyboxLine: '#d98949',
+        onesie: '#bca8ff', onesieLine: '#8c78db', bib: '#dffff4', bibLine: '#a5d8c5', hair: '#704f40'
+      }
+    ];
+
+    const speechBubble = document.getElementById('speech-bubble');
+    const baby = document.getElementById('baby');
+    const toy = document.getElementById('toy');
+    const choicesContainer = document.getElementById('choices');
+    const statusEl = document.getElementById('status');
+    const scoreEl = document.getElementById('score');
+    const questionNoEl = document.getElementById('questionNo');
+    const overlay = document.getElementById('overlay');
+    const restartBtn = document.getElementById('restartBtn');
+    const posterIcons = document.querySelector('#poster .icons');
+    const shelfToys = [
+      document.querySelector('.shelf-toy.a'),
+      document.querySelector('.shelf-toy.b'),
+      document.querySelector('.shelf-toy.c')
+    ];
+
+    let currentTarget = null;
+    let isLocked = false;
+    let solvedCount = 0;
+    let questionNo = 1;
+    const totalQuestions = 3;
+
+    function shuffle(array) {
+      const a = [...array];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function setTheme(index) {
+      const t = babyThemes[index % babyThemes.length];
+      const root = document.documentElement;
+      root.style.setProperty('--wall-left', t.wallLeft);
+      root.style.setProperty('--wall-right', t.wallRight);
+      root.style.setProperty('--floor', t.floor);
+      root.style.setProperty('--mat', t.mat);
+      root.style.setProperty('--curtain', t.curtain);
+      root.style.setProperty('--toybox', t.toybox);
+      root.style.setProperty('--toybox-line', t.toyboxLine);
+      root.style.setProperty('--onesie', t.onesie);
+      root.style.setProperty('--onesie-line', t.onesieLine);
+      root.style.setProperty('--bib', t.bib);
+      root.style.setProperty('--bib-line', t.bibLine);
+      root.style.setProperty('--hair', t.hair);
+      posterIcons.textContent = t.poster;
+      shelfToys.forEach((el, i) => el.textContent = t.shelf[i]);
+    }
+
+    function setBabyState(state) {
+      baby.classList.remove('state-crying', 'state-happy', 'state-playing', 'bounce');
+      if (state === 'crying') baby.classList.add('state-crying');
+      if (state === 'happy') baby.classList.add('state-happy', 'bounce');
+      if (state === 'playing') baby.classList.add('state-playing', 'bounce');
+    }
+
+    function updateTopbar() {
+      scoreEl.textContent = solvedCount;
+      questionNoEl.textContent = Math.min(questionNo, totalQuestions);
+    }
+
+    function pickQuestion() {
+      const options = shuffle(items).slice(0, 5);
+      currentTarget = options[Math.floor(Math.random() * options.length)];
+      return options;
+    }
+
+    function renderQuestion() {
+      if (questionNo > totalQuestions) {
+        overlay.classList.add('show');
+        return;
+      }
+      isLocked = false;
+      setTheme(questionNo - 1);
+      toy.textContent = '';
+      toy.classList.remove('show');
+      setBabyState('crying');
+      statusEl.textContent = 'なきやませてあげよう';
+      choicesContainer.innerHTML = '';
+      updateTopbar();
+      const options = pickQuestion();
+      speechBubble.textContent = currentTarget.word;
+
+      options.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.type = 'button';
+        btn.textContent = item.emoji;
+        btn.addEventListener('click', () => onChoice(item, btn));
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    function onChoice(item, btn) {
+      if (isLocked) return;
+      if (item.word === currentTarget.word) {
+        isLocked = true;
+        btn.classList.add('correct');
+        solvedCount += 1;
+        toy.textContent = item.emoji;
+        toy.classList.add('show');
+        setBabyState('playing');
+        statusEl.textContent = (questionNo) + 'にんめの あかちゃんと ' + currentTarget.word + ' で あそべた！';
+        updateTopbar();
+        setTimeout(() => {
+          questionNo += 1;
+          renderQuestion();
+        }, 1700);
+      } else {
+        btn.classList.add('wrong');
+        statusEl.textContent = 'ちがうみたい';
+        setTimeout(() => btn.classList.remove('wrong'), 350);
+      }
+    }
+
+    restartBtn.addEventListener('click', () => {
+      solvedCount = 0;
+      questionNo = 1;
+      overlay.classList.remove('show');
+      renderQuestion();
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
