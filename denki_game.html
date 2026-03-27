@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電気イスゲーム</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --danger: #dc3545;
+            --success: #28a745;
+            --bg: #f8f9fa;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        #app {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h1 { font-size: 24px; color: #333; margin-bottom: 20px; }
+        .status-board {
+            display: flex;
+            justify-content: space-between;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .player-status { width: 45%; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .chair-btn {
+            background: white;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chair-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #e7f1ff;
+        }
+        .chair-btn:disabled {
+            background: #e9ecef;
+            color: #adb5bd;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        .action-btn:hover { background: #0056b3; }
+        .result-box {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .result-safe { background: #d4edda; color: var(--success); }
+        .result-shock { background: #f8d7da; color: var(--danger); }
+        .turn-indicator { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- ステータス表示 (ゲーム中常に上部に表示) -->
+    <div id="status-header" style="display: none;">
+        <div class="status-board">
+            <div class="player-status" id="p1-status">P1: 0pt (✖:0)</div>
+            <div class="player-status" id="p2-status">P2: 0pt (✖:0)</div>
+        </div>
+    </div>
+
+    <!-- スタート画面 -->
+    <div id="screen-start" class="screen active">
+        <h1>電気イスゲーム</h1>
+        <p>1つのタブレットを2人で交互に操作します。<br>相手の操作中は画面を見ないでください。</p>
+        <button class="action-btn" onclick="startGame()">ゲーム開始</button>
+    </div>
+
+    <!-- 端末受け渡し画面 -->
+    <div id="screen-pass" class="screen">
+        <h1 id="pass-message"></h1>
+        <p>画面を見られないようにして、準備ができたらボタンを押してください。</p>
+        <button class="action-btn" onclick="readyForAction()">準備OK</button>
+    </div>
+
+    <!-- イス選択画面 (仕掛け / 座る) -->
+    <div id="screen-select" class="screen">
+        <div class="turn-indicator" id="turn-instruction"></div>
+        <div class="grid" id="chair-grid"></div>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="screen-result" class="screen">
+        <h1 id="result-title"></h1>
+        <div id="result-box" class="result-box"></div>
+        <p id="result-detail"></p>
+        <button class="action-btn" onclick="nextPhase()">次へ</button>
+    </div>
+
+    <!-- 終了画面 -->
+    <div id="screen-end" class="screen">
+        <h1>ゲーム終了！</h1>
+        <div id="final-result" class="result-box" style="background:#fff3cd; color:#856404;"></div>
+        <button class="action-btn" onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+</div>
+
+<script>
+    let chairs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let players = [
+        { id: 1, name: "プレイヤー1", score: 0, shocks: 0 },
+        { id: 2, name: "プレイヤー2", score: 0, shocks: 0 }
+    ];
+    let turn = 1; // 奇数: P1仕掛け/P2座る, 偶数: P2仕掛け/P1座る
+    let phase = "set"; // "set" (仕掛け) or "sit" (座る)
+    let trappedChair = null;
+
+    function getSetter() { return turn % 2 !== 0 ? players[0] : players[1]; }
+    function getSitter() { return turn % 2 !== 0 ? players[1] : players[0]; }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        if (screenId !== 'screen-start' && screenId !== 'screen-end') {
+            document.getElementById('status-header').style.display = 'block';
+            updateStatusBoard();
+        } else {
+            document.getElementById('status-header').style.display = 'none';
+        }
+    }
+
+    function updateStatusBoard() {
+        document.getElementById('p1-status').innerText = `${players[0].name}: ${players[0].score}pt (✖:${players[0].shocks})`;
+        document.getElementById('p2-status').innerText = `${players[1].name}: ${players[1].score}pt (✖:${players[1].shocks})`;
+    }
+
+    function startGame() {
+        chairs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        players.forEach(p => { p.score = 0; p.shocks = 0; });
+        turn = 1;
+        phase = "set";
+        preparePassScreen();
+    }
+
+    function preparePassScreen() {
+        const activePlayer = phase === "set" ? getSetter() : getSitter();
+        document.getElementById('pass-message').innerText = `${activePlayer.name} に端末を渡してください`;
+        showScreen('screen-pass');
+    }
+
+    function readyForAction() {
+        const activePlayer = phase === "set" ? getSetter() : getSitter();
+        const instructionText = phase === "set" 
+            ? `【${activePlayer.name}のターン】<br>電流を仕掛けるイスを選んでください` 
+            : `【${activePlayer.name}のターン】<br>座るイスを選んでください`;
+
+        document.getElementById('turn-instruction').innerHTML = instructionText;
+        renderChairs();
+        showScreen('screen-select');
+    }
+
+    function renderChairs() {
+        const grid = document.getElementById('chair-grid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'chair-btn';
+            btn.innerText = i;
+            if (!chairs.includes(i)) {
+                btn.disabled = true;
+                btn.innerText = '✖';
+            } else {
+                btn.onclick = () => handleChairClick(i);
+            }
+            grid.appendChild(btn);
+        }
+    }
+
+    function handleChairClick(chairNum) {
+        if (phase === "set") {
+            trappedChair = chairNum;
+            phase = "sit";
+            preparePassScreen();
+        } else {
+            processResult(chairNum);
+        }
+    }
+
+    function processResult(chairNum) {
+        const sitter = getSitter();
+        const resultBox = document.getElementById('result-box');
+        const resultDetail = document.getElementById('result-detail');
+
+        document.getElementById('result-title').innerText = `${sitter.name} の結果`;
+
+        if (chairNum === trappedChair) {
+            // 失敗 (電流)
+            sitter.score = 0;
+            sitter.shocks += 1;
+            resultBox.className = 'result-box result-shock';
+            resultBox.innerText = '⚡ ビリビリ！！電流が流れました ⚡';
+            resultDetail.innerText = `イス${chairNum}番には電流が仕掛けられていました。
+ポイントが0になり、感電回数が${sitter.shocks}回になりました。`;
+        } else {
+            // 成功 (セーフ)
+            sitter.score += chairNum;
+            resultBox.className = 'result-box result-safe';
+            resultBox.innerText = '✨ セーフ！ ✨';
+            resultDetail.innerText = `電流はありませんでした。
+${chairNum}ポイントを獲得しました！`;
+        }
+
+        // 座ったイスをゲームから除外
+        chairs = chairs.filter(c => c !== chairNum);
+
+        updateStatusBoard();
+        showScreen('screen-result');
+    }
+
+    function nextPhase() {
+        const sitter = getSitter();
+        const setter = getSetter();
+
+        // 終了判定
+        if (sitter.shocks >= 3) {
+            endGame(`${setter.name} の勝利！
+(${sitter.name} が3回感電しました)`);
+            return;
+        }
+        if (sitter.score >= 40) {
+            endGame(`${sitter.name} の勝利！
+(40ポイントに到達しました)`);
+            return;
+        }
+        if (chairs.length <= 1) {
+            if (players[0].score > players[1].score) {
+                endGame(`${players[0].name} の勝利！
+(最終ポイント: ${players[0].score} 対 ${players[1].score})`);
+            } else if (players[1].score > players[0].score) {
+                endGame(`${players[1].name} の勝利！
+(最終ポイント: ${players[1].score} 対 ${players[0].score})`);
+            } else {
+                endGame(`引き分け！
+(最終ポイント: 同点)`);
+            }
+            return;
+        }
+
+        // ターン切り替え
+        turn++;
+        phase = "set";
+        preparePassScreen();
+    }
+
+    function endGame(message) {
+        document.getElementById('final-result').innerText = message;
+        showScreen('screen-end');
+    }
+</script>
+
+</body>
+</html>
