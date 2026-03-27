@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>電気イスゲーム</title>
+    <title>電気イスゲーム (Dark Mode)</title>
     <style>
         :root {
             --primary: #00d2ff;
@@ -88,11 +88,11 @@
             justify-content: center;
             align-items: center;
         }
-        .chair-btn:hover:not(:disabled) {
-            border-color: var(--primary);
-            background: #004455;
-            box-shadow: 0 0 15px var(--primary);
-            transform: translate(-50%, -50%) scale(1.1);
+        .chair-btn.selected {
+            border-color: #ffd700;
+            background: #665000;
+            box-shadow: 0 0 20px #ffd700;
+            transform: translate(-50%, -50%) scale(1.15);
         }
         .chair-btn:disabled {
             background: #111;
@@ -225,6 +225,7 @@
     <div id="screen-select" class="screen">
         <div class="turn-indicator" id="turn-instruction"></div>
         <div class="chair-container" id="chair-grid"></div>
+        <button class="action-btn" style="margin-top:20px;" onclick="confirmSelection()">このイスに決定</button>
     </div>
 
     <!-- 結果画面 -->
@@ -252,6 +253,7 @@
     let turn = 1; 
     let phase = "set"; 
     let trappedChair = null;
+let selectedChair = null;
 
     function getSetter() { return turn % 2 !== 0 ? players[0] : players[1]; }
     function getSitter() { return turn % 2 !== 0 ? players[1] : players[0]; }
@@ -309,6 +311,7 @@
         for (let i = 1; i <= 12; i++) {
             const btn = document.createElement('button');
             btn.className = 'chair-btn';
+            btn.dataset.num = i;
             btn.innerText = i;
 
             // 角度の計算 (12時は-90度、1時間は30度)
@@ -326,7 +329,7 @@
                 btn.disabled = true;
                 btn.innerText = '✖';
             } else {
-                btn.onclick = () => handleChairClick(i);
+                btn.onclick = () => setSelectedChair(i);
             }
             container.appendChild(btn);
         }
@@ -426,6 +429,30 @@ ${chairNum}ポイントを獲得しました！`;
         document.getElementById('final-result').innerText = message;
         showScreen('screen-end');
     }
+
+    function setSelectedChair(num) {
+        selectedChair = num;
+        const container = document.getElementById('chair-grid');
+        const buttons = container.querySelectorAll('.chair-btn');
+        buttons.forEach(btn => {
+            if (btn.disabled) return;
+            if (parseInt(btn.dataset.num) === num) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+    }
+
+    function confirmSelection() {
+        if (selectedChair === null) {
+            alert('イスを選択してください');
+            return;
+        }
+        handleChairClick(selectedChair);
+        selectedChair = null;
+    }
+
 </script>
 
 </body>
