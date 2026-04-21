@@ -19,33 +19,27 @@
 
   /* ゲーム画面 */
   #info { display: flex; justify-content: space-around; font-size: 20px; font-weight: bold; color: #333; width: 100%; max-width: 400px; margin-bottom: 10px; }
-  #board { display: grid; gap: 5px; background-color: #ffe4b5; padding: 10px; border-radius: 15px; touch-action: manipulation; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .tile { display: flex; align-items: center; justify-content: center; background-color: #fff; border-radius: 10px; cursor: pointer; transition: transform 0.2s; font-size: 2.5rem; }
-  .tile.selected { transform: scale(1.1); box-shadow: 0 0 10px #ffcc00; border: 3px solid #ffcc00; }
+  #board { display: grid; gap: 5px; background-color: #ffe4b5; padding: 10px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); touch-action: none; margin: 0 auto; }
+  .tile { display: flex; align-items: center; justify-content: center; background-color: #fff; border-radius: 10px; cursor: pointer; font-size: 2.5rem; user-select: none; }
   .tile.juice { animation: pop 0.5s; }
   @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(0); } }
 
-  /* ジューサー画面 */
-  #juicer { font-size: 80px; margin: 20px; }
-  .shake { animation: shake-anim 0.5s infinite; }
-  @keyframes shake-anim {
-    0% { transform: translate(2px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(0px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(2px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(2px, 2px) rotate(0deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
-  }
-  .juicer-msg { font-size: 24px; color: #ff4500; font-weight: bold; }
+  /* ミキサー画面 */
+  .juicer-msg { font-size: 24px; color: #ff4500; font-weight: bold; margin-bottom: 20px; height: 60px; }
+  #mixer-wrapper { position: relative; margin: 20px auto; width: 160px; }
+  #mixer-cup { width: 140px; height: 180px; border: 6px solid #ccc; border-top: none; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; background: rgba(255,255,255,0.6); margin: 0 auto; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+  #mixer-base { width: 160px; height: 40px; background: #666; border-radius: 10px; margin-top: 5px; position: relative; }
+  #mixer-button { width: 20px; height: 20px; background: #ff4500; border-radius: 50%; position: absolute; top: 10px; left: 70px; }
+  #mixer-fruits { font-size: 40px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%; letter-spacing: -5px; }
+
+  .spin-fast { animation: spin-anim 0.3s linear infinite; }
+  @keyframes spin-anim { 100% { transform: rotate(360deg) scale(0.8); } }
+  .shake-base { animation: shake-base-anim 0.1s linear infinite; }
+  @keyframes shake-base-anim { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 
   /* 結果画面 */
   #result-screen h2 { font-size: 32px; color: #ff4500; }
-  #result-screen p { font-size: 24px; }
+  #result-screen p { font-size: 24px; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -77,22 +71,28 @@
   <div id="board"></div>
 </div>
 
-<!-- ジューサー画面 -->
+<!-- ミキサー画面 -->
 <div id="juicer-screen" class="screen">
-  <div class="juicer-msg" id="juicer-text">あつめたフルーツを<br>ジューサーにいれるよ！</div>
-  <div id="juicer">🌪️🍎🍌🍇</div>
+  <div class="juicer-msg" id="juicer-text">あつめたフルーツを<br>ミキサーにいれるよ！</div>
+  <div id="mixer-wrapper">
+    <div id="mixer-cup">
+      <div id="mixer-fruits"></div>
+    </div>
+    <div id="mixer-base"><div id="mixer-button"></div></div>
+  </div>
 </div>
 
 <!-- 結果画面 -->
 <div id="result-screen" class="screen">
   <h2>かんせい！🎉</h2>
-  <div style="font-size: 80px;">🍹</div>
+  <div style="font-size: 80px;" id="result-juice-icon">🍹</div>
   <p>おいしいジュースが<br><span id="final-score" style="color:#ff4500; font-size:36px; font-weight:bold;">0</span> はい できたよ！</p>
   <button class="start-btn" onclick="showSetup()">もういっかい</button>
 </div>
 
 <script>
-  const allFruits = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍑'];
+  // いちごをスイカに変更
+  const allFruits = ['🍎', '🍌', '🍇', '🍊', '🍉', '🥝'];
   let currentSize = 5;
   let currentFruitCount = 4;
   let activeFruits = [];
@@ -100,7 +100,6 @@
   let score = 0;
   let timeLeft = 60;
   let timer = null;
-  let selectedTile = null;
   let isProcessing = false;
 
   function setSize(size, btn) {
@@ -149,25 +148,47 @@
 
   function endGame() {
     showScreen('juicer-screen');
-    const juicer = document.getElementById('juicer');
+    const mixerFruits = document.getElementById('mixer-fruits');
+    const mixerBase = document.getElementById('mixer-base');
+    const mixerButton = document.getElementById('mixer-button');
     const msg = document.getElementById('juicer-text');
 
-    juicer.innerText = '🌪️' + activeFruits.join('');
-    juicer.classList.add('shake');
-    msg.innerHTML = 'ぐるぐる まぜまぜ...<br>おいしくなぁれ！';
+    mixerFruits.innerText = activeFruits.join(' ');
+    mixerFruits.classList.remove('spin-fast');
+    mixerBase.classList.remove('shake-base');
+    mixerButton.style.backgroundColor = '#ff4500';
+    mixerCupBg = document.getElementById('mixer-cup');
+    mixerCupBg.style.backgroundColor = 'rgba(255,255,255,0.6)';
+
+    msg.innerHTML = 'あつめたフルーツを<br>ミキサーにいれるよ！';
+
+    // アニメーションのシーケンス
+    setTimeout(() => {
+      msg.innerHTML = 'スイッチ オン！<br>ぐるぐるぐる〜！';
+      mixerButton.style.backgroundColor = '#32cd32'; // 緑色に光る
+      mixerFruits.classList.add('spin-fast');
+      mixerBase.classList.add('shake-base');
+
+      // 途中でジュースの色に変わる演出
+      setTimeout(() => {
+         mixerCupBg.style.backgroundColor = '#ffdead'; // ミックスジュース色
+         mixerFruits.innerText = '✨';
+      }, 1500);
+
+    }, 2000);
 
     setTimeout(() => {
-      juicer.classList.remove('shake');
-      document.getElementById('final-score').innerText = Math.floor(score / 3) + 1; // 3個で1杯換算＋おまけ
+      let cups = Math.floor(score / 3) + 1;
+      document.getElementById('final-score').innerText = cups;
+      document.getElementById('result-juice-icon').innerText = (cups > 10) ? '🍹🍹🍹' : '🍹';
       showScreen('result-screen');
-    }, 3500);
+    }, 5000);
   }
 
   function initBoard() {
     const boardEl = document.getElementById('board');
     boardEl.innerHTML = '';
 
-    // サイズに応じてマスの大きさを調整
     let tileSize = currentSize === 4 ? 65 : (currentSize === 5 ? 55 : 45);
     boardEl.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
     boardEl.style.width = `${currentSize * (tileSize + 5)}px`;
@@ -175,7 +196,6 @@
 
     board = [];
     isProcessing = false;
-    selectedTile = null;
 
     for (let r = 0; r < currentSize; r++) {
       let row = [];
@@ -187,12 +207,63 @@
         tile.style.height = `${tileSize}px`;
         tile.style.fontSize = `${tileSize * 0.6}px`;
         tile.innerText = fruit;
-        tile.onclick = () => handleTileClick(r, c);
+
+        // スワイプ操作の追加
+        addSwipeListeners(tile, r, c);
+
         boardEl.appendChild(tile);
         row.push({ fruit: fruit, element: tile });
       }
       board.push(row);
     }
+  }
+
+  function addSwipeListeners(tile, r, c) {
+    let startX, startY;
+
+    tile.addEventListener('pointerdown', (e) => {
+      if (isProcessing || timeLeft <= 0) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      tile.setPointerCapture(e.pointerId);
+    });
+
+    tile.addEventListener('pointerup', (e) => {
+      if (isProcessing || timeLeft <= 0 || startX === undefined) return;
+      let dx = e.clientX - startX;
+      let dy = e.clientY - startY;
+      startX = undefined; 
+      startY = undefined;
+
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return; // スワイプが小さすぎる場合は無視
+
+      let targetR = r;
+      let targetC = c;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0) targetC++; else targetC--;
+      } else {
+        if (dy > 0) targetR++; else targetR--;
+      }
+
+      // 盤面内の場合のみ入れ替え
+      if (targetR >= 0 && targetR < currentSize && targetC >= 0 && targetC < currentSize) {
+        handleSwipe(r, c, targetR, targetC);
+      }
+    });
+  }
+
+  function handleSwipe(r1, c1, r2, c2) {
+    isProcessing = true;
+    swap(r1, c1, r2, c2);
+
+    setTimeout(() => {
+      if (!checkMatches()) {
+        // マッチしなかったら元に戻す
+        swap(r1, c1, r2, c2); 
+        isProcessing = false;
+      }
+    }, 300);
   }
 
   function getRandomFruit(r, c, currentRow, fullBoard) {
@@ -204,32 +275,6 @@
       (c >= 2 && currentRow[c-1].fruit === fruit && currentRow[c-2].fruit === fruit)
     );
     return fruit;
-  }
-
-  function handleTileClick(r, c) {
-    if (timeLeft <= 0 || isProcessing) return;
-
-    if (!selectedTile) {
-      selectedTile = { r, c };
-      board[r][c].element.classList.add('selected');
-    } else {
-      let sr = selectedTile.r;
-      let sc = selectedTile.c;
-      board[sr][sc].element.classList.remove('selected');
-
-      let isAdjacent = Math.abs(sr - r) + Math.abs(sc - c) === 1;
-      if (isAdjacent) {
-        swap(sr, sc, r, c);
-        isProcessing = true;
-        setTimeout(() => {
-          if (!checkMatches()) {
-            swap(sr, sc, r, c); 
-            isProcessing = false;
-          }
-        }, 300);
-      }
-      selectedTile = null;
-    }
   }
 
   function swap(r1, c1, r2, c2) {
