@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>フルーツジュースパズル</title>
+<style>
+  body { font-family: 'Hiragino Maru Gothic ProN', sans-serif; background-color: #fff9e6; text-align: center; margin: 0; padding: 10px; user-select: none; }
+  h1 { color: #ff8c00; font-size: 24px; margin-bottom: 5px; }
+  .screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; }
+  .active { display: flex; }
+
+  /* 設定画面 */
+  .setting-group { margin-bottom: 20px; }
+  .setting-group h2 { font-size: 18px; color: #555; margin-bottom: 10px; }
+  .btn { font-size: 18px; padding: 10px 15px; background-color: #ffd700; color: #333; border: 2px solid #ffcc00; border-radius: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
+  .btn.selected { background-color: #ff8c00; color: white; border-color: #ff4500; }
+  .start-btn { font-size: 24px; padding: 15px 30px; background-color: #ff4500; color: white; border: none; border-radius: 15px; margin-top: 20px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+
+  /* ゲーム画面 */
+  #info { display: flex; justify-content: space-around; font-size: 20px; font-weight: bold; color: #333; width: 100%; max-width: 400px; margin-bottom: 10px; }
+  #board { display: grid; gap: 5px; background-color: #ffe4b5; padding: 10px; border-radius: 15px; touch-action: manipulation; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+  .tile { display: flex; align-items: center; justify-content: center; background-color: #fff; border-radius: 10px; cursor: pointer; transition: transform 0.2s; font-size: 2.5rem; }
+  .tile.selected { transform: scale(1.1); box-shadow: 0 0 10px #ffcc00; border: 3px solid #ffcc00; }
+  .tile.juice { animation: pop 0.5s; }
+  @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(0); } }
+
+  /* ジューサー画面 */
+  #juicer { font-size: 80px; margin: 20px; }
+  .shake { animation: shake-anim 0.5s infinite; }
+  @keyframes shake-anim {
+    0% { transform: translate(2px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(0px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(2px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  .juicer-msg { font-size: 24px; color: #ff4500; font-weight: bold; }
+
+  /* 結果画面 */
+  #result-screen h2 { font-size: 32px; color: #ff4500; }
+  #result-screen p { font-size: 24px; }
+</style>
+</head>
+<body>
+
+<!-- 設定画面 -->
+<div id="setup-screen" class="screen active">
+  <h1>フルーツジュースパズル 🍹</h1>
+  <div class="setting-group">
+    <h2>▼ ばんめの ひろさ ▼</h2>
+    <button class="btn sz-btn" onclick="setSize(4, this)">ちいさい (4x4)</button>
+    <button class="btn sz-btn selected" onclick="setSize(5, this)">ふつう (5x5)</button>
+    <button class="btn sz-btn" onclick="setSize(6, this)">おおきい (6x6)</button>
+  </div>
+  <div class="setting-group">
+    <h2>▼ フルーツの しゅるい ▼</h2>
+    <button class="btn fr-btn" onclick="setFruits(3, this)">3 こ</button>
+    <button class="btn fr-btn selected" onclick="setFruits(4, this)">4 こ</button>
+    <button class="btn fr-btn" onclick="setFruits(5, this)">5 こ</button>
+  </div>
+  <button class="start-btn" onclick="startGame()">ゲームスタート！</button>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="game-screen" class="screen">
+  <div id="info">
+    <div>のこり: <span id="time">60</span>びょう</div>
+    <div>あつめた: <span id="score">0</span>こ</div>
+  </div>
+  <div id="board"></div>
+</div>
+
+<!-- ジューサー画面 -->
+<div id="juicer-screen" class="screen">
+  <div class="juicer-msg" id="juicer-text">あつめたフルーツを<br>ジューサーにいれるよ！</div>
+  <div id="juicer">🌪️🍎🍌🍇</div>
+</div>
+
+<!-- 結果画面 -->
+<div id="result-screen" class="screen">
+  <h2>かんせい！🎉</h2>
+  <div style="font-size: 80px;">🍹</div>
+  <p>おいしいジュースが<br><span id="final-score" style="color:#ff4500; font-size:36px; font-weight:bold;">0</span> はい できたよ！</p>
+  <button class="start-btn" onclick="showSetup()">もういっかい</button>
+</div>
+
+<script>
+  const allFruits = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍑'];
+  let currentSize = 5;
+  let currentFruitCount = 4;
+  let activeFruits = [];
+  let board = [];
+  let score = 0;
+  let timeLeft = 60;
+  let timer = null;
+  let selectedTile = null;
+  let isProcessing = false;
+
+  function setSize(size, btn) {
+    currentSize = size;
+    document.querySelectorAll('.sz-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function setFruits(count, btn) {
+    currentFruitCount = count;
+    document.querySelectorAll('.fr-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showSetup() {
+    showScreen('setup-screen');
+  }
+
+  function startGame() {
+    activeFruits = allFruits.slice(0, currentFruitCount);
+    score = 0;
+    timeLeft = 60;
+    document.getElementById('score').innerText = score;
+    document.getElementById('time').innerText = timeLeft;
+
+    initBoard();
+    showScreen('game-screen');
+
+    if(timer) clearInterval(timer);
+    timer = setInterval(updateTime, 1000);
+  }
+
+  function updateTime() {
+    timeLeft--;
+    document.getElementById('time').innerText = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      endGame();
+    }
+  }
+
+  function endGame() {
+    showScreen('juicer-screen');
+    const juicer = document.getElementById('juicer');
+    const msg = document.getElementById('juicer-text');
+
+    juicer.innerText = '🌪️' + activeFruits.join('');
+    juicer.classList.add('shake');
+    msg.innerHTML = 'ぐるぐる まぜまぜ...<br>おいしくなぁれ！';
+
+    setTimeout(() => {
+      juicer.classList.remove('shake');
+      document.getElementById('final-score').innerText = Math.floor(score / 3) + 1; // 3個で1杯換算＋おまけ
+      showScreen('result-screen');
+    }, 3500);
+  }
+
+  function initBoard() {
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+
+    // サイズに応じてマスの大きさを調整
+    let tileSize = currentSize === 4 ? 65 : (currentSize === 5 ? 55 : 45);
+    boardEl.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
+    boardEl.style.width = `${currentSize * (tileSize + 5)}px`;
+    boardEl.style.height = `${currentSize * (tileSize + 5)}px`;
+
+    board = [];
+    isProcessing = false;
+    selectedTile = null;
+
+    for (let r = 0; r < currentSize; r++) {
+      let row = [];
+      for (let c = 0; c < currentSize; c++) {
+        let fruit = getRandomFruit(r, c, row, board);
+        let tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.style.width = `${tileSize}px`;
+        tile.style.height = `${tileSize}px`;
+        tile.style.fontSize = `${tileSize * 0.6}px`;
+        tile.innerText = fruit;
+        tile.onclick = () => handleTileClick(r, c);
+        boardEl.appendChild(tile);
+        row.push({ fruit: fruit, element: tile });
+      }
+      board.push(row);
+    }
+  }
+
+  function getRandomFruit(r, c, currentRow, fullBoard) {
+    let fruit;
+    do {
+      fruit = activeFruits[Math.floor(Math.random() * activeFruits.length)];
+    } while (
+      (r >= 2 && fullBoard[r-1][c].fruit === fruit && fullBoard[r-2][c].fruit === fruit) ||
+      (c >= 2 && currentRow[c-1].fruit === fruit && currentRow[c-2].fruit === fruit)
+    );
+    return fruit;
+  }
+
+  function handleTileClick(r, c) {
+    if (timeLeft <= 0 || isProcessing) return;
+
+    if (!selectedTile) {
+      selectedTile = { r, c };
+      board[r][c].element.classList.add('selected');
+    } else {
+      let sr = selectedTile.r;
+      let sc = selectedTile.c;
+      board[sr][sc].element.classList.remove('selected');
+
+      let isAdjacent = Math.abs(sr - r) + Math.abs(sc - c) === 1;
+      if (isAdjacent) {
+        swap(sr, sc, r, c);
+        isProcessing = true;
+        setTimeout(() => {
+          if (!checkMatches()) {
+            swap(sr, sc, r, c); 
+            isProcessing = false;
+          }
+        }, 300);
+      }
+      selectedTile = null;
+    }
+  }
+
+  function swap(r1, c1, r2, c2) {
+    let temp = board[r1][c1].fruit;
+    board[r1][c1].fruit = board[r2][c2].fruit;
+    board[r1][c1].element.innerText = board[r1][c1].fruit;
+    board[r2][c2].fruit = temp;
+    board[r2][c2].element.innerText = board[r2][c2].fruit;
+  }
+
+  function checkMatches() {
+    let matched = false;
+    let matchSet = new Set();
+
+    for (let r = 0; r < currentSize; r++) {
+      for (let c = 0; c < currentSize - 2; c++) {
+        let f = board[r][c].fruit;
+        if (f && f === board[r][c+1].fruit && f === board[r][c+2].fruit) {
+          matchSet.add(`${r},${c}`); matchSet.add(`${r},${c+1}`); matchSet.add(`${r},${c+2}`);
+        }
+      }
+    }
+    for (let c = 0; c < currentSize; c++) {
+      for (let r = 0; r < currentSize - 2; r++) {
+        let f = board[r][c].fruit;
+        if (f && f === board[r+1][c].fruit && f === board[r+2][c].fruit) {
+          matchSet.add(`${r},${c}`); matchSet.add(`${r+1},${c}`); matchSet.add(`${r+2},${c}`);
+        }
+      }
+    }
+
+    if (matchSet.size > 0) {
+      matched = true;
+      score += matchSet.size; 
+      document.getElementById('score').innerText = score;
+
+      matchSet.forEach(pos => {
+        let [r, c] = pos.split(',').map(Number);
+        board[r][c].element.innerText = '✨';
+        board[r][c].element.classList.add('juice');
+        board[r][c].fruit = null;
+      });
+
+      setTimeout(() => {
+        matchSet.forEach(pos => {
+          let [r, c] = pos.split(',').map(Number);
+          board[r][c].element.classList.remove('juice');
+          board[r][c].element.innerText = '';
+        });
+        shiftDown();
+      }, 500);
+    } else {
+      isProcessing = false;
+    }
+    return matched;
+  }
+
+  function shiftDown() {
+    for (let c = 0; c < currentSize; c++) {
+      for (let r = currentSize - 1; r >= 0; r--) {
+        if (board[r][c].fruit === null) {
+          for (let k = r - 1; k >= 0; k--) {
+            if (board[k][c].fruit !== null) {
+              board[r][c].fruit = board[k][c].fruit;
+              board[r][c].element.innerText = board[r][c].fruit;
+              board[k][c].fruit = null;
+              board[k][c].element.innerText = '';
+              break;
+            }
+          }
+        }
+      }
+    }
+    fillRandom();
+  }
+
+  function fillRandom() {
+    for (let r = 0; r < currentSize; r++) {
+      for (let c = 0; c < currentSize; c++) {
+        if (board[r][c].fruit === null) {
+          board[r][c].fruit = activeFruits[Math.floor(Math.random() * activeFruits.length)];
+          board[r][c].element.innerText = board[r][c].fruit;
+        }
+      }
+    }
+    setTimeout(() => {
+      if(!checkMatches()) isProcessing = false;
+    }, 400);
+  }
+</script>
+</body>
+</html>
