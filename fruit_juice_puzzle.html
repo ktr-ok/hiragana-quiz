@@ -20,7 +20,7 @@
   /* ゲーム画面 */
   #info { display: flex; justify-content: space-around; font-size: 20px; font-weight: bold; color: #333; width: 100%; max-width: 400px; margin-bottom: 10px; }
   #board { display: grid; gap: 5px; background-color: #ffe4b5; padding: 10px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); touch-action: none; margin: 0 auto; }
-  .tile { display: flex; align-items: center; justify-content: center; background-color: #fff; border-radius: 10px; cursor: pointer; font-size: 2.5rem; user-select: none; }
+  .tile { display: flex; align-items: center; justify-content: center; background-color: #fff; border-radius: 10px; cursor: pointer; user-select: none; }
   .tile.juice { animation: pop 0.5s; }
   @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(0); } }
 
@@ -47,6 +47,7 @@
 <!-- 設定画面 -->
 <div id="setup-screen" class="screen active">
   <h1>フルーツジュースパズル 🍹</h1>
+  <p style="color: #ff4500; font-weight: bold; margin-top: 0; margin-bottom: 15px;">フルーツを じゆうに うごかせるよ！</p>
   <div class="setting-group">
     <h2>▼ ばんめの ひろさ ▼</h2>
     <button class="btn sz-btn" onclick="setSize(4, this)">ちいさい (4x4)</button>
@@ -59,6 +60,7 @@
     <button class="btn fr-btn selected" onclick="setFruits(4, this)">4 こ</button>
     <button class="btn fr-btn" onclick="setFruits(5, this)">5 こ</button>
   </div>
+  <p style="color: #666; font-size: 14px; margin-top: 10px;">※おとがでます！ボリュームにちゅういしてね</p>
   <button class="start-btn" onclick="startGame()">ゲームスタート！</button>
 </div>
 
@@ -91,8 +93,60 @@
 </div>
 
 <script>
-  // いちごをスイカに変更
-  const allFruits = ['🍎', '🍌', '🍇', '🍊', '🍉', '🥝'];
+  let audioCtx;
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(freq, type, duration, vol=0.1) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playSwipeSound() { playTone(600, 'sine', 0.1, 0.05); }
+  function playMatchSound() {
+    playTone(880, 'square', 0.1, 0.05);
+    setTimeout(() => playTone(1108, 'square', 0.15, 0.05), 100);
+  }
+  function playBlenderSound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+    osc.frequency.linearRampToValueAtTime(250, audioCtx.currentTime + 1);
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + 2.5);
+    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 3);
+  }
+  function playTadaSound() {
+    playTone(523.25, 'sine', 0.2, 0.1);
+    setTimeout(() => playTone(659.25, 'sine', 0.2, 0.1), 200);
+    setTimeout(() => playTone(783.99, 'sine', 0.4, 0.1), 400);
+  }
+  function playEndBeep() { playTone(440, 'sine', 0.5, 0.1); } 
+
+  const allFruits = ['🍎', '🍌', '🍇', '🍊', '🍉', '🍑'];
   let currentSize = 5;
   let currentFruitCount = 4;
   let activeFruits = [];
@@ -124,6 +178,7 @@
   }
 
   function startGame() {
+    initAudio(); 
     activeFruits = allFruits.slice(0, currentFruitCount);
     score = 0;
     timeLeft = 60;
@@ -142,6 +197,7 @@
     document.getElementById('time').innerText = timeLeft;
     if (timeLeft <= 0) {
       clearInterval(timer);
+      playEndBeep();
       endGame();
     }
   }
@@ -162,16 +218,16 @@
 
     msg.innerHTML = 'あつめたフルーツを<br>ミキサーにいれるよ！';
 
-    // アニメーションのシーケンス
     setTimeout(() => {
       msg.innerHTML = 'スイッチ オン！<br>ぐるぐるぐる〜！';
-      mixerButton.style.backgroundColor = '#32cd32'; // 緑色に光る
+      mixerButton.style.backgroundColor = '#32cd32';
       mixerFruits.classList.add('spin-fast');
       mixerBase.classList.add('shake-base');
 
-      // 途中でジュースの色に変わる演出
+      playBlenderSound();
+
       setTimeout(() => {
-         mixerCupBg.style.backgroundColor = '#ffdead'; // ミックスジュース色
+         mixerCupBg.style.backgroundColor = '#ffdead';
          mixerFruits.innerText = '✨';
       }, 1500);
 
@@ -182,14 +238,16 @@
       document.getElementById('final-score').innerText = cups;
       document.getElementById('result-juice-icon').innerText = (cups > 10) ? '🍹🍹🍹' : '🍹';
       showScreen('result-screen');
-    }, 5000);
+      playTadaSound(); 
+    }, 5500);
   }
 
   function initBoard() {
     const boardEl = document.getElementById('board');
     boardEl.innerHTML = '';
 
-    let tileSize = currentSize === 4 ? 65 : (currentSize === 5 ? 55 : 45);
+    let tileSize = currentSize === 4 ? 85 : (currentSize === 5 ? 75 : 60);
+
     boardEl.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
     boardEl.style.width = `${currentSize * (tileSize + 5)}px`;
     boardEl.style.height = `${currentSize * (tileSize + 5)}px`;
@@ -205,10 +263,9 @@
         tile.className = 'tile';
         tile.style.width = `${tileSize}px`;
         tile.style.height = `${tileSize}px`;
-        tile.style.fontSize = `${tileSize * 0.6}px`;
+        tile.style.fontSize = `${tileSize * 0.65}px`;
         tile.innerText = fruit;
 
-        // スワイプ操作の追加
         addSwipeListeners(tile, r, c);
 
         boardEl.appendChild(tile);
@@ -235,7 +292,7 @@
       startX = undefined; 
       startY = undefined;
 
-      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return; // スワイプが小さすぎる場合は無視
+      if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
 
       let targetR = r;
       let targetC = c;
@@ -246,8 +303,8 @@
         if (dy > 0) targetR++; else targetR--;
       }
 
-      // 盤面内の場合のみ入れ替え
       if (targetR >= 0 && targetR < currentSize && targetC >= 0 && targetC < currentSize) {
+        playSwipeSound();
         handleSwipe(r, c, targetR, targetC);
       }
     });
@@ -259,8 +316,7 @@
 
     setTimeout(() => {
       if (!checkMatches()) {
-        // マッチしなかったら元に戻す
-        swap(r1, c1, r2, c2); 
+        // ここが変更点: 消せない場合でも元に戻さず、そのまま移動を確定させる
         isProcessing = false;
       }
     }, 300);
@@ -308,6 +364,7 @@
 
     if (matchSet.size > 0) {
       matched = true;
+      playMatchSound();
       score += matchSet.size; 
       document.getElementById('score').innerText = score;
 
