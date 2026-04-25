@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Color Chain Puzzle</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 16px;
+    user-select: none; -webkit-user-select: none;
+    overflow: hidden;
+  }
+  h1 { font-size: 1.4rem; letter-spacing: 2px; margin-bottom: 12px; color: #e0aaff; }
+  .stats { display: flex; gap: 24px; margin-bottom: 10px; }
+  .stat { text-align: center; }
+  .stat-label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 1.4rem; font-weight: bold; }
+  .time-bar-wrap {
+    width: 360px; max-width: 98vw;
+    height: 10px; background: #333; border-radius: 5px; margin-bottom: 14px; overflow: hidden;
+  }
+  .time-bar {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #f72585, #7209b7);
+    border-radius: 5px; transition: width 0.1s linear;
+  }
+  .chain-info { font-size: 0.85rem; color: #aaa; min-height: 1.2em; margin-bottom: 8px; }
+  .buttons { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; justify-content: center; }
+  button {
+    padding: 8px 16px; border: none; border-radius: 8px;
+    font-size: 0.9rem; font-weight: bold; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  button:disabled { opacity: 0.35; cursor: default; }
+  #btn-start  { background: #7209b7; color: #fff; }
+  #btn-erase  { background: #f72585; color: #fff; }
+  #btn-undo   { background: #4cc9f0; color: #1a1a2e; }
+  #btn-clear  { background: #555; color: #fff; }
+  .board-wrap { position: relative; width: 360px; max-width: 98vw; touch-action: none; }
+  /* ライン描画 canvas */
+  canvas#line-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 2;
+  }
+  /* パーティクル canvas — board-wrap の外に重ねる */
+  canvas#fx-canvas {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    pointer-events: none; z-index: 100;
+  }
+  .board {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 6px; background: #16213e; border-radius: 14px; padding: 10px;
+    touch-action: none;
+  }
+  .cell {
+    aspect-ratio: 1; border-radius: 10px;
+    border: 3px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s;
+  }
+  .cell.selected { border-color: #fff; box-shadow: 0 0 10px #fff8; transform: scale(1.08); }
+  .cell.empty { background: #1e2a45 !important; }
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    align-items: center; justify-content: center; z-index: 200;
+  }
+  .overlay.active { display: flex; }
+  .overlay-box {
+    background: #16213e; border-radius: 18px;
+    padding: 36px 48px; text-align: center;
+  }
+  .overlay-box h2 { font-size: 2rem; margin-bottom: 8px; color: #e0aaff; }
+  .overlay-box p { font-size: 1.1rem; margin: 6px 0; color: #ccc; }
+  .final-score { font-size: 2.5rem; font-weight: bold; color: #f72585; margin: 12px 0; }
+  #btn-restart { margin-top: 18px; background: #7209b7; color: #fff; padding: 12px 32px; font-size: 1rem; border-radius: 10px; }
+</style>
+</head>
+<body>
+<h1>🔗 COLOR CHAIN</h1>
+<div class="stats">
+  <div class="stat"><div class="stat-label">Score</div><div class="stat-value" id="score">0</div></div>
+  <div class="stat"><div class="stat-label">Best Chain</div><div class="stat-value" id="best-chain">0</div></div>
+  <div class="stat"><div class="stat-label">Time</div><div class="stat-value" id="time">60</div></div>
+</div>
+<div class="time-bar-wrap"><div class="time-bar" id="time-bar"></div></div>
+<div class="chain-info" id="chain-info">ゲームをスタートしてください</div>
+<div class="buttons">
+  <button id="btn-start">▶ スタート</button>
+  <button id="btn-erase" disabled>🗑 消す</button>
+  <button id="btn-undo" disabled>↩ 1つ戻る</button>
+  <button id="btn-clear" disabled>✕ 選択解除</button>
+</div>
+<div class="board-wrap" id="board-wrap">
+  <canvas id="line-canvas"></canvas>
+  <div class="board" id="board"></div>
+</div>
+<canvas id="fx-canvas"></canvas>
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <h2>⏰ TIME UP!</h2>
+    <p>最終スコア</p>
+    <div class="final-score" id="final-score">0</div>
+    <p id="final-best">最長チェーン: 0</p>
+    <button id="btn-restart">🔄 もう一度</button>
+  </div>
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  定数・状態
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const COLORS  = ['#f72585','#7209b7','#3a86ff','#06d6a0','#ffbe0b','#ff6b6b'];
+const GLOW    = ['#ff8fc8','#c77dff','#74b3ff','#5effd8','#ffe566','#ff9999'];
+const ROWS = 6, COLS = 6;
+let board = [], selected = [], score = 0, bestChain = 0;
+let timeLeft = 60, timerInterval = null, running = false;
+let cellRects = [];
+const gesture = { active: false, pointerId: null, moved: false, lastKey: null };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  パーティクルシステム
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const fxCanvas = document.getElementById('fx-canvas');
+const fxCtx = fxCanvas.getContext('2d');
+let particles = [];
+let fxRAF = null;
+
+function resizeFxCanvas() {
+  fxCanvas.width  = window.innerWidth;
+  fxCanvas.height = window.innerHeight;
+}
+resizeFxCanvas();
+window.addEventListener('resize', resizeFxCanvas);
+
+function spawnParticles(x, y, color, count = 14) {
+  for (let i = 0; i < count; i++) {
+    const angle  = (Math.PI * 2 / count) * i + Math.random() * 0.4;
+    const speed  = 3.5 + Math.random() * 4.5;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 5 + Math.random() * 5,
+      color,
+      alpha: 1,
+      decay: 0.022 + Math.random() * 0.018
+    });
+  }
+  if (!fxRAF) loopFx();
+}
+
+function loopFx() {
+  fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+  particles.forEach(p => {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.18;          // 重力
+    p.vx *= 0.96;
+    p.alpha -= p.decay;
+    fxCtx.globalAlpha = Math.max(0, p.alpha);
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    fxCtx.fillStyle = p.color;
+    fxCtx.fill();
+  });
+  fxCtx.globalAlpha = 1;
+  particles = particles.filter(p => p.alpha > 0);
+  if (particles.length > 0) {
+    fxRAF = requestAnimationFrame(loopFx);
+  } else {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    fxRAF = null;
+  }
+}
+
+// 消去対象セルの画面座標一覧を取得してパーティクル発火
+function fireParticles(erasedKeys, colorIdx, isLoop) {
+  erasedKeys.forEach(key => {
+    const [r, c] = key.split(',').map(Number);
+    const rect = cellRects[r] && cellRects[r][c];
+    if (!rect) return;
+    const cx = (rect.left + rect.right)  / 2;
+    const cy = (rect.top  + rect.bottom) / 2;
+    const count = isLoop ? 22 : 10;
+    spawnParticles(cx, cy, COLORS[colorIdx], count);
+  });
+}
+
+// ループ成立時の画面フラッシュ
+function flashScreen(color) {
+  const div = document.createElement('div');
+  Object.assign(div.style, {
+    position:'fixed', inset:'0', background: color,
+    opacity:'0.35', pointerEvents:'none', zIndex:'150',
+    transition:'opacity 0.4s ease'
+  });
+  document.body.appendChild(div);
+  requestAnimationFrame(() => {
+    div.style.opacity = '0';
+    setTimeout(() => div.remove(), 450);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ボード描画
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function rndColor() { return Math.floor(Math.random() * COLORS.length); }
+
+function initBoard() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    board.push([]);
+    for (let c = 0; c < COLS; c++) board[r].push(rndColor());
+  }
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      const empty = board[r][c] === null;
+      cell.className = 'cell' + (empty ? ' empty' : '');
+      if (!empty) cell.style.background = COLORS[board[r][c]];
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      if (selected.some(s => s[0]===r && s[1]===c)) cell.classList.add('selected');
+      boardEl.appendChild(cell);
+    }
+  }
+  cacheCellRects();
+  drawLines();
+}
+
+function cacheCellRects() {
+  cellRects = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+  document.querySelectorAll('.cell').forEach(el => {
+    const r = Number(el.dataset.r), c = Number(el.dataset.c);
+    const rect = el.getBoundingClientRect();
+    cellRects[r][c] = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+  });
+}
+
+function getCellFromPoint(x, y) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const rect = cellRects[r][c];
+      if (!rect) continue;
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        if (board[r][c] === null) return null;
+        return { r, c };
+      }
+    }
+  }
+  return null;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ライン描画（グロー効果 + ループ時フラッシュ色）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function drawLines() {
+  const canvas  = document.getElementById('line-canvas');
+  const boardEl = document.getElementById('board');
+  const bRect   = boardEl.getBoundingClientRect();
+  canvas.width  = bRect.width;
+  canvas.height = bRect.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (selected.length < 2) return;
+
+  const colorIdx = board[selected[0][0]][selected[0][1]];
+  const baseColor = COLORS[colorIdx];
+  const glowColor = GLOW[colorIdx];
+  const isLoop = checkLoop();
+
+  const points = [];
+  selected.forEach(([r, c]) => {
+    const el = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    if (!el) return;
+    const er = el.getBoundingClientRect();
+    points.push({ x: er.left - bRect.left + er.width/2, y: er.top - bRect.top + er.height/2 });
+  });
+
+  const drawPath = () => {
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    if (isLoop) ctx.closePath();
+  };
+
+  // 外側グロー
+  ctx.save();
+  ctx.shadowColor = isLoop ? '#ffd700' : glowColor;
+  ctx.shadowBlur  = isLoop ? 24 : 16;
+  ctx.strokeStyle = isLoop ? '#ffd700' : glowColor;
+  ctx.lineWidth   = isLoop ? 7 : 5;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  drawPath(); ctx.stroke();
+  ctx.restore();
+
+  // 内側コアライン
+  ctx.save();
+  ctx.strokeStyle = isLoop ? '#fff' : 'rgba(255,255,255,0.9)';
+  ctx.lineWidth   = isLoop ? 3 : 2.5;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  drawPath(); ctx.stroke();
+  ctx.restore();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ゲームロジック
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function isAdjacent(r1,c1,r2,c2) {
+  return Math.abs(r1-r2)<=1 && Math.abs(c1-c2)<=1 && !(r1===r2&&c1===c2);
+}
+function checkLoop() {
+  if (selected.length < 4) return false;
+  const last = selected[selected.length-1];
+  return isAdjacent(last[0], last[1], selected[0][0], selected[0][1]);
+}
+
+function tryAddCell(r, c) {
+  const key = `${r},${c}`;
+  if (key === gesture.lastKey) return 'none';
+  const idx = selected.findIndex(([sr,sc]) => sr===r && sc===c);
+  if (idx !== -1) {
+    if (idx === selected.length-2) {
+      selected.pop();
+      const l = selected[selected.length-1];
+      gesture.lastKey = l ? `${l[0]},${l[1]}` : null;
+      return 'back';
+    }
+    if (idx===0 && selected.length>=4) {
+      const last = selected[selected.length-1];
+      if (isAdjacent(last[0],last[1],r,c)) return 'loop';
+    }
+    return 'none';
+  }
+  if (selected.length===0) { selected.push([r,c]); gesture.lastKey=key; return 'added'; }
+  const baseColor = board[selected[0][0]][selected[0][1]];
+  if (board[r][c]!==baseColor) return 'none';
+  const last = selected[selected.length-1];
+  if (!isAdjacent(last[0],last[1],r,c)) return 'none';
+  selected.push([r,c]); gesture.lastKey=key; return 'added';
+}
+
+function updateUI() {
+  renderBoard();
+  const n = selected.length, isLoop = checkLoop();
+  let text = '最初のセルを選んでください';
+  if (n===1) text = 'チェーン: 1 セル選択中';
+  if (n>=2)  text = `チェーン: ${n}個` + (n>=5 ? ' ⭐ ボーナス！' : '');
+  if (isLoop) text = `🔄 ループ成立！ ${n}個 → 同色全消し！`;
+  document.getElementById('chain-info').textContent = text;
+  document.getElementById('btn-erase').disabled = n < 2;
+  document.getElementById('btn-undo').disabled  = n === 0;
+  document.getElementById('btn-clear').disabled = n === 0;
+}
+
+function calcScore(n, isLoop) {
+  let s = n * 10;
+  if (n>=5) s += (n-4)*15;
+  if (isLoop) s = Math.floor(s*2.5);
+  return s;
+}
+
+function showFloatScore(pts, isLoop) {
+  const info = document.getElementById('chain-info');
+  info.style.color = isLoop ? '#ffd700' : '#06d6a0';
+  info.textContent = `+${pts}${isLoop ? ' 🔥 LOOP BONUS!' : ''}`;
+  setTimeout(()=>{ info.style.color='#aaa'; }, 1400);
+}
+
+function dropAndFill() {
+  for (let c=0; c<COLS; c++) {
+    const col=[];
+    for (let r=ROWS-1; r>=0; r--) if(board[r][c]!==null) col.push(board[r][c]);
+    while(col.length<ROWS) col.push(rndColor());
+    for (let r=ROWS-1; r>=0; r--) board[r][c]=col[ROWS-1-r];
+  }
+}
+
+function eraseSelected(forceLoop=false) {
+  if (selected.length < 2) return;
+  const isLoop    = forceLoop || checkLoop();
+  const colorIdx  = board[selected[0][0]][selected[0][1]];
+  const toErase   = new Set(selected.map(([r,c])=>`${r},${c}`));
+  if (isLoop) {
+    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if (board[r][c]===colorIdx) toErase.add(`${r},${c}`);
+  }
+  const n = toErase.size;
+  const gained = calcScore(n, isLoop);
+  score    += gained;
+  bestChain = Math.max(bestChain, n);
+
+  // 時間回復: 元の半分（n / 4 秒）
+  timeLeft = Math.min(60, timeLeft + n / 4);
+
+  // パーティクル発火（消去前に座標を使う）
+  fireParticles(toErase, colorIdx, isLoop);
+  if (isLoop) flashScreen(COLORS[colorIdx]);
+
+  toErase.forEach(key => {
+    const [r,c] = key.split(',').map(Number);
+    board[r][c] = null;
+  });
+  dropAndFill();
+  selected = []; gesture.lastKey = null;
+  document.getElementById('score').textContent = score;
+  document.getElementById('best-chain').textContent = bestChain;
+  updateUI();
+  showFloatScore(gained, isLoop);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  タイマー
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function tick() {
+  timeLeft = Math.max(0, timeLeft - 0.1);
+  document.getElementById('time').textContent = Math.ceil(timeLeft);
+  document.getElementById('time-bar').style.width = `${(timeLeft/60)*100}%`;
+  if (timeLeft <= 0) endGame();
+}
+
+function startGame() {
+  clearInterval(timerInterval);
+  score=0; bestChain=0; timeLeft=60; selected=[]; running=true;
+  Object.assign(gesture, {active:false, pointerId:null, moved:false, lastKey:null});
+  document.getElementById('score').textContent = '0';
+  document.getElementById('best-chain').textContent = '0';
+  document.getElementById('time').textContent = '60';
+  document.getElementById('time-bar').style.width = '100%';
+  document.getElementById('overlay').classList.remove('active');
+  initBoard(); renderBoard(); updateUI();
+  timerInterval = setInterval(tick, 100);
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  running=false; selected=[];
+  Object.assign(gesture, {active:false, pointerId:null, moved:false, lastKey:null});
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-best').textContent = `最長チェーン: ${bestChain}`;
+  document.getElementById('overlay').classList.add('active');
+  updateUI();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Pointer Events
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const boardWrap = document.getElementById('board-wrap');
+
+boardWrap.addEventListener('pointerdown', e => {
+  if (e.pointerType==='touch') e.preventDefault();
+  if (!running) return;
+  gesture.active=true; gesture.pointerId=e.pointerId;
+  gesture.moved=false; gesture.lastKey=null;
+  if (boardWrap.setPointerCapture) boardWrap.setPointerCapture(e.pointerId);
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (!cell) return;
+  const res = tryAddCell(cell.r, cell.c);
+  if (res==='loop') { eraseSelected(true); gesture.active=false; return; }
+  if (res!=='none') updateUI();
+});
+
+boardWrap.addEventListener('pointermove', e => {
+  if (e.pointerType==='touch') e.preventDefault();
+  if (!running || !gesture.active || gesture.pointerId!==e.pointerId) return;
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (!cell) return;
+  const before = selected.length;
+  const res = tryAddCell(cell.r, cell.c);
+  if (res==='loop') { eraseSelected(true); gesture.active=false; return; }
+  if (res==='added'||res==='back') { if(selected.length!==before) gesture.moved=true; updateUI(); }
+});
+
+document.addEventListener('pointerup', e => {
+  if (!gesture.active || gesture.pointerId!==e.pointerId) return;
+  if (boardWrap.releasePointerCapture) try { boardWrap.releasePointerCapture(e.pointerId); } catch(_){}
+  const shouldErase = gesture.moved && selected.length >= 2;
+  Object.assign(gesture, {active:false, pointerId:null, moved:false, lastKey:null});
+  if (!running) return;
+  if (shouldErase) eraseSelected();
+  else updateUI();
+});
+
+document.addEventListener('pointercancel', e => {
+  if (!gesture.active || gesture.pointerId!==e.pointerId) return;
+  Object.assign(gesture, {active:false, pointerId:null, moved:false, lastKey:null});
+  selected=[]; updateUI();
+});
+
+boardWrap.addEventListener('dragstart', e=>e.preventDefault());
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ボタン
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-erase').addEventListener('click', ()=>eraseSelected());
+document.getElementById('btn-undo').addEventListener('click', ()=>{
+  if(selected.length){ selected.pop(); gesture.lastKey=null; updateUI(); }
+});
+document.getElementById('btn-clear').addEventListener('click', ()=>{
+  selected=[]; gesture.lastKey=null; updateUI();
+});
+document.getElementById('btn-restart').addEventListener('click', startGame);
+window.addEventListener('resize', ()=>{ cacheCellRects(); drawLines(); });
+
+initBoard(); renderBoard(); updateUI();
+</script>
+</body>
+</html>
