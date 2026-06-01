@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>おさかなつり</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /*
+      3歳向けのやさしい魚釣りゲーム。
+      見た目を保ちながら、あとで直しやすいようにセクションごとにコメントを入れている。
+    */
+
+    :root {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.95rem, 0.9rem + 0.35vw, 1.05rem);
+      --text-base: clamp(1rem, 0.96rem + 0.25vw, 1.15rem);
+      --text-lg: clamp(1.25rem, 1.05rem + 1vw, 1.8rem);
+      --text-xl: clamp(1.65rem, 1.2rem + 1.8vw, 2.5rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem;
+      --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
+      --radius-sm: 0.5rem; --radius-md: 0.9rem; --radius-lg: 1.4rem; --radius-xl: 2rem; --radius-full: 999px;
+      --color-bg: #e7f8ff;
+      --color-surface: rgba(255,255,255,0.75);
+      --color-surface-2: rgba(255,255,255,0.92);
+      --color-text: #134166;
+      --color-text-muted: #45729b;
+      --shadow-md: 0 10px 30px rgba(40, 104, 168, 0.12);
+      --shadow-lg: 0 16px 40px rgba(40, 104, 168, 0.18);
+      --font-display: 'Mochiy Pop One', 'Hiragino Maru Gothic ProN', sans-serif;
+      --font-body: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--color-text);
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255,255,255,0.85), transparent 20%),
+        radial-gradient(circle at 80% 10%, rgba(255,255,255,0.55), transparent 18%),
+        linear-gradient(180deg, #c9f1ff 0%, #81dcff 36%, #57b8ef 70%, #2a91d3 100%);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button { border: none; font: inherit; cursor: pointer; min-width: 48px; min-height: 48px; }
+    .app { position: relative; width: 100%; height: 100dvh; overflow: hidden; }
+
+    .topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: calc(env(safe-area-inset-top) + var(--space-3)) var(--space-3) var(--space-3);
+      pointer-events: none;
+    }
+
+    .logo-pill, .status-pill {
+      background: var(--color-surface-2);
+      border: 2px solid rgba(255,255,255,0.7);
+      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-full);
+      padding: var(--space-2) var(--space-4);
+      pointer-events: auto;
+    }
+
+    .logo-pill {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      color: #ff6ba9;
+    }
+
+    .logo-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: conic-gradient(from 180deg, #ffd45e, #ff9f73, #ff7ab6, #7fe4ff, #ffd45e);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .logo-mark::before, .logo-mark::after {
+      content: '';
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .logo-mark::before { width: 8px; height: 8px; top: 12px; left: 9px; }
+    .logo-mark::after { width: 8px; height: 8px; top: 12px; right: 9px; }
+
+    .status-group { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .status-pill { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); font-weight: 700; color: var(--color-text); }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      border: 2px solid rgba(255,255,255,0.35);
+      pointer-events: none;
+      animation: rise linear infinite;
+      bottom: -80px;
+    }
+
+    @keyframes rise {
+      from { transform: translateY(0); opacity: 0.85; }
+      to { transform: translateY(-120vh); opacity: 0.1; }
+    }
+
+    .sea { position: absolute; inset: 0; overflow: hidden; }
+    .wave { position: absolute; left: -10%; width: 120%; border-radius: 45% 55% 0 0; background: rgba(255,255,255,0.12); pointer-events: none; }
+    .wave.one { top: 22%; height: 80px; animation: sway 6s ease-in-out infinite; }
+    .wave.two { top: 40%; height: 65px; animation: sway 8s ease-in-out infinite reverse; opacity: 0.65; }
+
+    @keyframes sway {
+      0%, 100% { transform: translateX(-1%); }
+      50% { transform: translateX(1.5%); }
+    }
+
+    .fish-layer, .fx-layer, .line-layer { position: absolute; inset: 0; }
+
+    .fish {
+      position: absolute;
+      width: 104px;
+      height: 68px;
+      transform-origin: center;
+      transition: transform 0.16s ease;
+      pointer-events: none;
+      filter: drop-shadow(0 8px 12px rgba(16, 80, 120, 0.12));
+    }
+
+    .fish-body {
+      position: absolute;
+      inset: 10px 14px 10px 0;
+      border-radius: 45px 38px 38px 45px;
+      background: var(--fish-color, #ff9b95);
+      border: 3px solid rgba(255,255,255,0.75);
+    }
+
+    /*
+      にこにこ目。
+      点の黒目ではなく、上にふくらむ弧線で『笑っている目』に見せる。
+      border の上辺だけを使って、小さな半円の線を作っている。
+    */
+    .eye-dot {
+      position: absolute;
+      width: 14px;
+      height: 8px;
+      top: 22px;
+      left: 22px;
+      border-top: 3px solid #17344c;
+      border-left: 2px solid transparent;
+      border-right: 2px solid transparent;
+      border-radius: 14px 14px 0 0;
+      transform: rotate(4deg);
+    }
+
+    .fish-mouth {
+      position: absolute;
+      width: 24px;
+      height: 12px;
+      border: 3px solid transparent;
+      border-bottom-color: #ef5b8f;
+      border-radius: 0 0 24px 24px;
+      left: 25px;
+      top: 35px;
+    }
+
+    .fish-fin {
+      position: absolute;
+      width: 20px;
+      height: 22px;
+      background: rgba(255,255,255,0.45);
+      border-radius: 50% 50% 0 50%;
+      top: 8px;
+      left: 39px;
+      transform: rotate(-22deg);
+    }
+
+    .fish-tail {
+      position: absolute;
+      right: 0;
+      top: 18px;
+      width: 28px;
+      height: 30px;
+      background: var(--fish-color-2, #ffcc6d);
+      clip-path: polygon(0 50%, 100% 0, 100% 100%);
+      border-radius: 2px;
+    }
+
+    .fish-spots { position: absolute; inset: 0; }
+    .fish-spots span { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.34); }
+    .fish-spots span:nth-child(1) { width: 13px; height: 13px; left: 58px; top: 24px; }
+    .fish-spots span:nth-child(2) { width: 9px; height: 9px; left: 70px; top: 18px; }
+    .fish-spots span:nth-child(3) { width: 10px; height: 10px; left: 72px; top: 38px; }
+
+    .fish.nibble .fish-body { animation: nibble 0.28s ease-in-out infinite; }
+    .fish.caught { animation: caught 0.55s ease-in forwards; }
+
+    @keyframes nibble {
+      0%, 100% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(-4px) scale(1.02); }
+    }
+
+    @keyframes caught {
+      0% { transform: scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-160px) scale(0.4) rotate(20deg); opacity: 0; }
+    }
+
+    .rod-line {
+      position: absolute;
+      top: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #fff5ca 0%, #fff 100%);
+      border-radius: var(--radius-full);
+      transform-origin: top center;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+      pointer-events: none;
+    }
+
+    .bait {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fffad5 0 30%, #ff9c6a 31% 100%);
+      border: 3px solid white;
+      box-shadow: 0 5px 16px rgba(255, 153, 95, 0.28);
+      transform: translate(-50%, -50%);
+    }
+
+    .bait::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 8px;
+      left: 7px;
+      top: 7px;
+      border-radius: 50%;
+      border-bottom: 3px solid rgba(255,255,255,0.8);
+    }
+
+    .message {
+      position: absolute;
+      left: 50%;
+      top: calc(env(safe-area-inset-top) + 98px);
+      transform: translateX(-50%);
+      z-index: 22;
+      background: rgba(255,255,255,0.94);
+      color: #ff659e;
+      padding: var(--space-2) var(--space-5);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-md);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .message.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .bottom-card {
+      position: absolute;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + var(--space-3));
+      transform: translateX(-50%);
+      z-index: 25;
+      width: min(92vw, 540px);
+      background: rgba(255,255,255,0.92);
+      border: 2px solid rgba(255,255,255,0.7);
+      box-shadow: var(--shadow-lg);
+      border-radius: var(--radius-xl);
+      padding: var(--space-3) var(--space-4);
+      text-align: center;
+    }
+
+    .hint { font-size: var(--text-sm); color: var(--color-text-muted); line-height: 1.4; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: var(--space-4);
+      background: linear-gradient(180deg, rgba(16, 108, 170, 0.12), rgba(16, 108, 170, 0.3));
+    }
+
+    .panel {
+      width: min(92vw, 560px);
+      background: rgba(255,255,255,0.96);
+      border-radius: 32px;
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-8);
+      text-align: center;
+      border: 3px solid rgba(255,255,255,0.78);
+    }
+
+    .panel h1, .panel h2 {
+      font-family: var(--font-display);
+      color: #ff659e;
+      font-size: var(--text-xl);
+      margin-bottom: var(--space-4);
+      line-height: 1.35;
+    }
+
+    .panel p { font-size: var(--text-base); color: var(--color-text); line-height: 1.7; margin: 0 auto var(--space-3); max-width: 22em; }
+    .panel .mini { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .cta-row { display: flex; justify-content: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-5); }
+
+    .btn {
+      padding: 0 var(--space-5);
+      border-radius: var(--radius-full);
+      min-height: 56px;
+      font-size: var(--text-base);
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { color: white; background: linear-gradient(180deg, #ff8fc4 0%, #ff6da9 100%); }
+
+    .sparkle {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: radial-gradient(circle, rgba(255,255,255,0.95) 0 35%, rgba(255,215,117,0.9) 36% 70%, transparent 71%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: sparkle 0.7s ease-out forwards;
+    }
+
+    @keyframes sparkle {
+      0% { transform: translate(0, 0) scale(0.2); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(1.1); opacity: 0; }
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 640px) {
+      .topbar { align-items: flex-start; }
+      .status-group { width: 100%; justify-content: flex-end; }
+      .logo-pill, .status-pill { font-size: var(--text-xs); padding-inline: var(--space-3); }
+      .fish { width: 92px; height: 60px; }
+      .panel { padding: var(--space-6) var(--space-4); }
+      .message { top: calc(env(safe-area-inset-top) + 116px); white-space: normal; width: min(86vw, 320px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="sea" id="sea">
+      <div class="wave one"></div>
+      <div class="wave two"></div>
+      <div class="fish-layer" id="fishLayer"></div>
+      <div class="line-layer" id="lineLayer"></div>
+      <div class="fx-layer" id="fxLayer"></div>
+    </div>
+
+    <div class="topbar">
+      <div class="logo-pill" aria-label="おさかなつり ロゴ">
+        <div class="logo-mark" aria-hidden="true"></div>
+        <span>おさかなつり</span>
+      </div>
+      <div class="status-group" aria-live="polite">
+        <div class="status-pill">⏰ <span id="timeLabel">45</span>びょう</div>
+        <div class="status-pill">🐟 <span id="scoreLabel">0</span>ひき</div>
+      </div>
+    </div>
+
+    <div class="message" id="message">たっぷして えさを おとそう</div>
+
+    <div class="bottom-card">
+      <p class="hint" id="hintText">うみを たっぷして えさを おとすよ。おさかなが ぱくっとしたら もういちど たっぷ！</p>
+    </div>
+
+    <div class="overlay" id="startOverlay">
+      <div class="panel">
+        <h1>おさかなを<br>つってみよう！</h1>
+        <p>にこにこの おさかなが たくさん およぐよ。</p>
+        <p>たっぷで えさを おとして、ぱくっとしたら もういちど たっぷ！</p>
+        <p class="mini">45びょうで なんびき つれるかな？</p>
+        <div class="cta-row"><button class="btn btn-primary" id="startBtn">はじめる</button></div>
+      </div>
+    </div>
+
+    <div class="overlay hidden" id="endOverlay">
+      <div class="panel">
+        <h2>おしまい！</h2>
+        <p id="resultText">3ひき つれたよ！</p>
+        <p class="mini">もういっかい あそべるよ</p>
+        <div class="cta-row"><button class="btn btn-primary" id="restartBtn">もういっかい</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GAME_TIME = 45;
+    const FISH_COUNT = 8;
+    const FISH_COLORS = [
+      ['#ff8aa5', '#ffd66e'],
+      ['#7ad7ff', '#8cffbb'],
+      ['#ffb26d', '#fff08b'],
+      ['#bf93ff', '#ff99c4'],
+      ['#7ff0d8', '#ffd66e'],
+      ['#ff93d1', '#9fdcff']
+    ];
+
+    const app = document.getElementById('app');
+    const sea = document.getElementById('sea');
+    const fishLayer = document.getElementById('fishLayer');
+    const lineLayer = document.getElementById('lineLayer');
+    const fxLayer = document.getElementById('fxLayer');
+    const timeLabel = document.getElementById('timeLabel');
+    const scoreLabel = document.getElementById('scoreLabel');
+    const hintText = document.getElementById('hintText');
+    const message = document.getElementById('message');
+    const startOverlay = document.getElementById('startOverlay');
+    const endOverlay = document.getElementById('endOverlay');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const resultText = document.getElementById('resultText');
+
+    let fishes = [];
+    let bubbles = [];
+    let running = false;
+    let score = 0;
+    let timeLeft = GAME_TIME;
+    let timerId = null;
+    let animationId = null;
+    let lastTs = 0;
+    let line = null;
+    let lineState = 'idle';
+    let linePos = null;
+    let nibbleFishId = null;
+    let hookFishId = null;
+    let messageTimer = null;
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+    function showMessage(text, duration = 1600) {
+      message.textContent = text;
+      message.classList.add('show');
+      clearTimeout(messageTimer);
+      messageTimer = setTimeout(() => message.classList.remove('show'), duration);
+    }
+
+    function makeFish(id) {
+      const el = document.createElement('div');
+      el.className = 'fish';
+      el.innerHTML = `
+        <div class="fish-body">
+          <div class="fish-fin"></div>
+          <div class="eye-dot"></div>
+          <div class="fish-mouth"></div>
+          <div class="fish-spots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="fish-tail"></div>
+      `;
+
+      fishLayer.appendChild(el);
+      const pair = FISH_COLORS[id % FISH_COLORS.length];
+      el.style.setProperty('--fish-color', pair[0]);
+      el.style.setProperty('--fish-color-2', pair[1]);
+      const dir = Math.random() > 0.5 ? 1 : -1;
+
+      return {
+        id,
+        el,
+        dir,
+        x: dir === 1 ? rand(-100, window.innerWidth * 0.6) : rand(window.innerWidth * 0.4, window.innerWidth + 20),
+        y: rand(140, window.innerHeight - 130),
+        baseY: rand(140, window.innerHeight - 130),
+        speed: rand(22, 38),
+        phase: rand(0, Math.PI * 2),
+        state: 'swim',
+        nibbleCount: 0,
+        nibbleTarget: 0,
+        nibbleTimer: 0,
+      };
+    }
+
+    function resetFishes() {
+      fishLayer.innerHTML = '';
+      fishes = Array.from({ length: FISH_COUNT }, (_, i) => makeFish(i));
+    }
+
+    function spawnBubble() {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = rand(12, 34);
+      b.style.width = `${size}px`;
+      b.style.height = `${size}px`;
+      b.style.left = `${rand(2, 96)}vw`;
+      b.style.animationDuration = `${rand(5, 10)}s`;
+      sea.appendChild(b);
+      bubbles.push(b);
+      setTimeout(() => {
+        b.remove();
+        bubbles = bubbles.filter(x => x !== b);
+      }, 10000);
+    }
+
+    function populateBubbles() {
+      for (let i = 0; i < 12; i++) setTimeout(spawnBubble, i * 250);
+    }
+
+    function createLine(x, y) {
+      clearLine();
+      const rod = document.createElement('div');
+      rod.className = 'rod-line';
+      const bait = document.createElement('div');
+      bait.className = 'bait';
+      const baitY = clamp(y, 150, window.innerHeight - 90);
+      rod.style.left = `${x - 2}px`;
+      rod.style.height = `${baitY}px`;
+      rod.style.top = '0px';
+      bait.style.left = `${x}px`;
+      bait.style.top = `${baitY}px`;
+      lineLayer.appendChild(rod);
+      lineLayer.appendChild(bait);
+      line = { rod, bait, x, y: baitY };
+      linePos = { x, y: baitY };
+      lineState = 'waiting';
+      hookFishId = null;
+      nibbleFishId = null;
+      hintText.textContent = 'おさかなが えさを みつけるかも…';
+      showMessage('おさかなさん こっちだよ〜');
+    }
+
+    function clearLine() {
+      if (line) {
+        line.rod.remove();
+        line.bait.remove();
+      }
+      line = null;
+      linePos = null;
+      lineState = 'idle';
+      nibbleFishId = null;
+      hookFishId = null;
+      fishes.forEach(fish => {
+        if (fish.state !== 'caught') {
+          fish.state = 'swim';
+          fish.el.classList.remove('nibble');
+        }
+      });
+      if (running) hintText.textContent = 'うみを たっぷして えさを おとすよ';
+    }
+
+    function createSparkles(x, y) {
+      for (let i = 0; i < 8; i++) {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = `${x}px`;
+        s.style.top = `${y}px`;
+        s.style.setProperty('--dx', `${rand(-55, 55)}px`);
+        s.style.setProperty('--dy', `${rand(-55, 55)}px`);
+        fxLayer.appendChild(s);
+        setTimeout(() => s.remove(), 700);
+      }
+    }
+
+    function catchFish() {
+      if (!running || hookFishId == null) return;
+      const fish = fishes.find(item => item.id === hookFishId);
+      if (!fish) return;
+      fish.state = 'caught';
+      fish.el.classList.remove('nibble');
+      fish.el.classList.add('caught');
+      createSparkles(fish.x + 45, fish.y + 28);
+      score += 1;
+      scoreLabel.textContent = score;
+      showMessage('つれた！ すごい！');
+      hintText.textContent = 'また たっぷして つってみよう';
+      setTimeout(() => {
+        fish.el.classList.remove('caught');
+        fish.dir = Math.random() > 0.5 ? 1 : -1;
+        fish.x = fish.dir === 1 ? -120 : window.innerWidth + 20;
+        fish.baseY = rand(145, window.innerHeight - 130);
+        fish.y = fish.baseY;
+        fish.speed = rand(22, 38);
+        fish.phase = rand(0, Math.PI * 2);
+        fish.state = 'swim';
+      }, 650);
+      clearLine();
+    }
+
+    function onGameTap(event) {
+      if (!running) return;
+      const rect = app.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      if (lineState === 'hooked') {
+        catchFish();
+        return;
+      }
+      if (lineState === 'waiting') {
+        clearLine();
+        showMessage('つりいとを あげたよ', 900);
+        hintText.textContent = 'うみを たっぷして えさを おとすよ';
+        return;
+      }
+      if (lineState === 'idle') createLine(x, y);
+    }
+
+    function updateFish(fish, dt) {
+      if (fish.state === 'caught') return;
+      const swimY = fish.baseY + Math.sin(lastTs / 800 + fish.phase) * 12;
+      if (line && fish.state === 'swim') {
+        const dx = linePos.x - (fish.x + 42);
+        const dy = linePos.y - (fish.y + 28);
+        const dist = Math.hypot(dx, dy);
+        if (dist < 150 && nibbleFishId == null) {
+          fish.state = 'approach';
+          nibbleFishId = fish.id;
+          fish.nibbleCount = 0;
+          fish.nibbleTarget = 2 + Math.floor(Math.random() * 2);
+          hintText.textContent = 'おさかなが きたよ';
+          showMessage('おっ？ えさに きづいた！', 1100);
+        }
+      }
+      if (fish.state === 'swim') {
+        fish.x += fish.speed * fish.dir * dt;
+        fish.y += (swimY - fish.y) * 0.08;
+      } else if (fish.state === 'approach' && line) {
+        const tx = linePos.x - 48 * fish.dir;
+        const ty = linePos.y - 18;
+        const dx = tx - fish.x;
+        const dy = ty - fish.y;
+        fish.x += dx * 0.03;
+        fish.y += dy * 0.03;
+        if (Math.hypot(dx, dy) < 18) {
+          fish.state = 'nibble';
+          fish.nibbleTimer = 0.26;
+          fish.el.classList.add('nibble');
+          hintText.textContent = 'つんつん してるよ';
+        }
+      } else if (fish.state === 'nibble' && line) {
+        fish.nibbleTimer -= dt;
+        fish.x += ((linePos.x - 48 * fish.dir) - fish.x) * 0.08;
+        fish.y += ((linePos.y - 18) - fish.y) * 0.08;
+        if (fish.nibbleTimer <= 0) {
+          fish.nibbleCount += 1;
+          if (fish.nibbleCount >= fish.nibbleTarget) {
+            fish.state = 'hooked';
+            lineState = 'hooked';
+            hookFishId = fish.id;
+            fish.el.classList.remove('nibble');
+            hintText.textContent = 'いま！ もういちど たっぷ！';
+            showMessage('ぱくっ！ いまたっぷ！', 1200);
+          } else {
+            fish.nibbleTimer = 0.32;
+          }
+        }
+      } else if (fish.state === 'hooked' && line) {
+        fish.x += ((linePos.x - 42) - fish.x) * 0.12;
+        fish.y += ((linePos.y - 22) - fish.y) * 0.12;
+      }
+      if (fish.x > window.innerWidth + 120) {
+        fish.x = -130;
+        fish.baseY = rand(145, window.innerHeight - 130);
+        fish.y = fish.baseY;
+      }
+      if (fish.x < -130) {
+        fish.x = window.innerWidth + 120;
+        fish.baseY = rand(145, window.innerHeight - 130);
+        fish.y = fish.baseY;
+      }
+      const facing = fish.dir === 1 ? 'scaleX(-1)' : 'scaleX(1)';
+      fish.el.style.transform = `translate(${fish.x}px, ${fish.y}px) ${facing}`;
+    }
+
+    function loop(ts) {
+      if (!running) return;
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min((ts - lastTs) / 1000, 0.033);
+      lastTs = ts;
+      fishes.forEach(fish => updateFish(fish, dt));
+      animationId = requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      score = 0;
+      timeLeft = GAME_TIME;
+      scoreLabel.textContent = '0';
+      timeLabel.textContent = GAME_TIME;
+      lastTs = 0;
+      running = true;
+      endOverlay.classList.add('hidden');
+      startOverlay.classList.add('hidden');
+      clearLine();
+      resetFishes();
+      populateBubbles();
+      showMessage('たっぷして えさを おとそう', 1800);
+      hintText.textContent = 'うみを たっぷして えさを おとすよ';
+      clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft -= 1;
+        timeLabel.textContent = timeLeft;
+        if (timeLeft <= 0) finishGame();
+      }, 1000);
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(loop);
+    }
+
+    function finishGame() {
+      running = false;
+      clearInterval(timerId);
+      cancelAnimationFrame(animationId);
+      clearLine();
+      resultText.textContent = `${score}ひき つれたよ！`;
+      endOverlay.classList.remove('hidden');
+      hintText.textContent = 'おしまい！';
+      showMessage('おしまい！', 1200);
+    }
+
+    function onResize() {
+      fishes.forEach(fish => {
+        fish.baseY = clamp(fish.baseY, 145, window.innerHeight - 130);
+        fish.y = clamp(fish.y, 145, window.innerHeight - 130);
+      });
+      if (linePos && line) {
+        linePos.y = clamp(linePos.y, 150, window.innerHeight - 90);
+        line.rod.style.height = `${linePos.y}px`;
+        line.bait.style.top = `${linePos.y}px`;
+      }
+    }
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    app.addEventListener('pointerdown', onGameTap);
+    window.addEventListener('resize', onResize);
+    resetFishes();
+    populateBubbles();
+  </script>
+</body>
+</html>
