@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>四角に切れ 生成版</title>
+  <style>
+    :root,[data-theme="light"]{
+      --font-display:system-ui,sans-serif;
+      --font-body:system-ui,sans-serif;
+      --text-xs:clamp(.75rem,.7rem + .25vw,.875rem);
+      --text-sm:clamp(.875rem,.8rem + .35vw,1rem);
+      --text-base:clamp(1rem,.95rem + .25vw,1.125rem);
+      --text-lg:clamp(1.125rem,1rem + .75vw,1.5rem);
+      --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2rem);
+      --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;--space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;
+      --bg:#0f1520;--surface:#171f2c;--surface-2:#1e2838;--surface-3:#243043;--border:rgba(255,255,255,.1);
+      --text:#eef4ff;--muted:#9eadc5;--faint:#738198;--primary:#ff6a65;--primary-2:#6fd6ff;--success:#78c66e;
+      --shadow:0 10px 32px rgba(0,0,0,.28);--radius:18px;--radius-sm:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:radial-gradient(circle at top,#162134 0%,var(--bg) 52%);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+    body{min-height:100dvh;overflow:hidden}
+    button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+    .app{min-height:100dvh;display:grid;grid-template-rows:auto auto 1fr auto;gap:var(--space-4);padding:calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom))}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+    .brand{display:flex;align-items:center;gap:.65rem;font-size:var(--text-lg);font-weight:700;letter-spacing:.01em}
+    .brand .mark{width:14px;height:14px;border-radius:999px;background:linear-gradient(180deg,#ff867b,#ff5d56);box-shadow:0 0 20px rgba(255,106,101,.28)}
+    .icon,.pill,.tool,.ghost{min-height:44px;min-width:44px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.04);box-shadow:var(--shadow)}
+    .icon{display:grid;place-items:center;font-size:1.25rem}
+    .statusbar{display:grid;grid-template-columns:1fr auto auto;gap:var(--space-3);align-items:center}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--border);border-radius:var(--radius);padding:var(--space-4);box-shadow:var(--shadow)}
+    .meta{display:flex;gap:var(--space-3);flex-wrap:wrap;color:var(--muted);font-size:var(--text-sm)}
+    .meta strong{color:var(--text)}
+    .pill{padding:0 var(--space-4);display:flex;align-items:center;justify-content:center;font-size:var(--text-sm);font-weight:600}
+    .board-wrap{min-height:0;display:flex;align-items:center;justify-content:center}
+    .board-shell{width:min(94vw,560px);display:grid;gap:var(--space-4)}
+    .board{width:100%;aspect-ratio:1/1;display:grid;gap:8px;padding:8px;border-radius:24px;background:rgba(255,255,255,.04);border:1px solid var(--border);touch-action:none;user-select:none;box-shadow:var(--shadow);position:relative;z-index:1}
+    .board.noevents{pointer-events:none}
+    .cell{position:relative;border-radius:12px;background:#2b3441;border:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-size:clamp(18px,4vw,30px);font-weight:700;color:#f3f7ff;transition:transform .12s ease,background .18s ease,outline-color .18s ease,opacity .18s ease}
+    .cell.alt{background:#323c49}
+    .cell.drag{background:rgba(111,214,255,.33);outline:2px solid rgba(111,214,255,.95);outline-offset:-2px}
+    .cell.locked{color:#08131a;text-shadow:none}
+    .cell.bad{animation:shake .2s linear 2}
+    .cell.blocked{opacity:.42}
+    .cell .num{position:relative;z-index:2}
+    .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3)}
+    .tool{display:flex;align-items:center;justify-content:center;font-size:var(--text-lg);font-weight:700;padding:0 var(--space-2)}
+    .tool small{display:block;font-size:var(--text-xs);color:var(--muted);font-weight:500}
+    .panel{display:none;position:fixed;inset:0;background:rgba(8,12,18,.66);backdrop-filter:blur(8px);padding:var(--space-4);align-items:center;justify-content:center;z-index:40}
+    .panel.show{display:flex}
+    .panel-card{width:min(92vw,560px);background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:var(--space-5);box-shadow:var(--shadow)}
+    .panel-card h2{margin:0 0 var(--space-3);font-size:var(--text-xl)}
+    .panel-card p{margin:0 0 var(--space-3);color:var(--muted);line-height:1.65}
+    .list{display:grid;gap:var(--space-2);margin:var(--space-3) 0 var(--space-4);padding-left:1.2rem;color:var(--muted)}
+    .actions{display:flex;gap:var(--space-3);flex-wrap:wrap}
+    .ghost,.primary{padding:0 var(--space-4);min-height:48px;border-radius:14px;font-weight:700}
+    .primary{background:linear-gradient(180deg,#ff847e,#ff655d);color:#fff;box-shadow:0 10px 24px rgba(255,101,93,.3)}
+    .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(18px);background:rgba(13,20,30,.92);border:1px solid var(--border);padding:.85rem 1rem;border-radius:999px;color:var(--text);font-size:var(--text-sm);opacity:0;pointer-events:none;transition:all .24s ease;z-index:45;box-shadow:var(--shadow)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+    @media (max-width:420px){.app{gap:12px;padding-left:12px;padding-right:12px}.board{gap:6px;padding:6px}.cell{border-radius:10px}.tool{min-height:58px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <button class="icon" id="helpBtn" aria-label="ルール">?</button>
+      <div class="brand" aria-label="タイトル">
+        <span class="mark"></span>
+        <span>四角に切れ 生成版</span>
+      </div>
+      <button class="icon" id="newBtn" aria-label="新しい問題">↻</button>
+    </header>
+
+    <section class="statusbar card" aria-label="ゲーム情報">
+      <div>
+        <div style="font-size:var(--text-sm);color:var(--muted);margin-bottom:6px">レベル生成つき・スワイプで長方形を作成</div>
+        <div class="meta">
+          <span>サイズ <strong id="sizeLabel">6×6</strong></span>
+          <span>長方形 <strong id="pieceLabel">0</strong></span>
+          <span>完成 <strong id="progressLabel">0%</strong></span>
+        </div>
+      </div>
+      <button class="pill" id="difficultyBtn" aria-label="難易度切替">NORMAL</button>
+      <button class="pill" id="hintBtn" aria-label="ヒント">ヒント</button>
+    </section>
+
+    <main class="board-wrap">
+      <div class="board-shell">
+        <div id="board" class="board" aria-label="パズル盤面"></div>
+      </div>
+    </main>
+
+    <nav class="tools" aria-label="操作">
+      <button class="tool" id="eraseBtn" aria-label="選択解除">⌫<small>消す</small></button>
+      <button class="tool" id="undoBtn" aria-label="元に戻す">↶<small>戻す</small></button>
+      <button class="tool" id="solveBtn" aria-label="答えを見る">★<small>答え</small></button>
+      <button class="tool" id="checkBtn" aria-label="判定">✓<small>判定</small></button>
+    </nav>
+  </div>
+
+  <div class="panel" id="helpPanel" aria-hidden="true">
+    <div class="panel-card">
+      <h2>遊び方</h2>
+      <p>数字が入っているマスを手がかりに、盤面全体を長方形に分割します。各長方形には数字がちょうど1つ入り、その数字は長方形の面積です。</p>
+      <ul class="list">
+        <li>マスをドラッグすると長方形を選択できます。</li>
+        <li>数字が1つだけ含まれ、面積が一致していれば確定します。</li>
+        <li>長方形どうしは重なれません。盤面をすべて埋めるとクリアです。</li>
+      </ul>
+      <div class="actions">
+        <button class="primary" id="closeHelpBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const pieceLabel = document.getElementById('pieceLabel');
+    const progressLabel = document.getElementById('progressLabel');
+    const toastEl = document.getElementById('toast');
+    const difficultyBtn = document.getElementById('difficultyBtn');
+    const helpPanel = document.getElementById('helpPanel');
+
+    const difficulties = [
+      {name:'NORMAL', rows:6, cols:6, target:7, maxArea:10},
+      {name:'HARD', rows:7, cols:7, target:10, maxArea:12}
+    ];
+
+    const palette = [
+      '#b9c6ff','#c9b8f6','#9fe2f2','#a7d1a4','#f0be87','#f4a7c8','#91b4db','#e0c79a','#8bd1b2','#f5d884','#c1cad8','#bda7d8'
+    ];
+
+    let difficultyIndex = 0;
+    let state = null;
+    let dragging = false;
+    let dragStart = null;
+    let dragRect = null;
+    let toastTimer = null;
+
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function key(r,c){ return `${r},${c}`; }
+    function parseKey(k){ const [r,c]=k.split(',').map(Number); return {r,c}; }
+    function rectCells(r1,c1,r2,c2){
+      const cells=[];
+      for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++) cells.push(key(r,c));
+      return cells;
+    }
+    function showToast(msg){
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 1800);
+    }
+
+    function generatePuzzle(diff){
+      const rows = diff.rows, cols = diff.cols;
+      const occupied = Array.from({length:rows},()=>Array(cols).fill(false));
+      const pieces = [];
+      const desired = randInt(diff.target, diff.target + 2);
+
+      function findFirstEmpty(){
+        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) if(!occupied[r][c]) return {r,c};
+        return null;
+      }
+      function canPlace(r,c,h,w){
+        if(r < 0 || c < 0 || r + h > rows || c + w > cols) return false;
+        for(let y=r;y<r+h;y++) for(let x=c;x<c+w;x++) if(occupied[y][x]) return false;
+        return true;
+      }
+      function candidateDims(remCells){
+        const out=[];
+        for(let area=2; area<=Math.min(diff.maxArea, remCells); area++){
+          for(let h=1; h<=area; h++){
+            if(area % h) continue;
+            const w = area / h;
+            out.push({h,w,area,score:Math.random() + (Math.min(h,w)*0.05) - (area>8?0.1:0)});
+          }
+        }
+        out.sort((a,b)=>b.score-a.score);
+        return out;
+      }
+
+      let safety = 0;
+      while(safety++ < 500){
+        const start = findFirstEmpty();
+        if(!start) break;
+        const remain = occupied.flat().filter(v=>!v).length;
+        const dims = candidateDims(remain);
+        let placed = false;
+        for(const cand of dims.slice(0, 20)){
+          const offsets = [
+            {r:start.r,c:start.c},
+            {r:start.r - cand.h + 1,c:start.c},
+            {r:start.r,c:start.c - cand.w + 1},
+            {r:start.r - cand.h + 1,c:start.c - cand.w + 1}
+          ];
+          for(const o of offsets){
+            if(!canPlace(o.r,o.c,cand.h,cand.w)) continue;
+            const cells = rectCells(o.r,o.c,o.r+cand.h-1,o.c+cand.w-1);
+            for(const ck of cells){ const p=parseKey(ck); occupied[p.r][p.c]=true; }
+            const clueCell = cells[randInt(0, cells.length-1)];
+            pieces.push({id:pieces.length, r:o.r, c:o.c, h:cand.h, w:cand.w, area:cand.area, cells, clue: clueCell});
+            placed = true;
+            break;
+          }
+          if(placed) break;
+        }
+        if(!placed) break;
+      }
+
+      const full = occupied.every(row=>row.every(Boolean));
+      if(!full) throw new Error('パズル生成に失敗しました');
+      const clueMap = new Map();
+      pieces.forEach(p=>clueMap.set(p.clue, p.area));
+      return {rows, cols, pieces, clueMap};
+    }
+
+    function buildState(diff){
+      const puzzle = generatePuzzle(diff);
+      return {
+        diff,
+        rows:puzzle.rows,
+        cols:puzzle.cols,
+        pieces:puzzle.pieces,
+        clueMap:puzzle.clueMap,
+        assigned:new Map(),
+        history:[],
+        revealSolution:false,
+      };
+    }
+
+    function pieceForCell(k){ return state.pieces.find(p=>p.cells.includes(k)); }
+    function assignedAt(k){ return state.assigned.get(k) ?? null; }
+    function allCovered(){ return state.assigned.size === state.rows * state.cols; }
+    function progress(){ return Math.round((state.assigned.size / (state.rows * state.cols)) * 100); }
+
+    function render(){
+      sizeLabel.textContent = `${state.rows}×${state.cols}`;
+      pieceLabel.textContent = `${state.pieces.length}`;
+      progressLabel.textContent = `${progress()}%`;
+      difficultyBtn.textContent = state.diff.name;
+
+      boardEl.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
+      boardEl.style.gridTemplateRows = `repeat(${state.rows}, 1fr)`;
+      boardEl.innerHTML = '';
+
+      const solutionColors = new Map();
+      state.pieces.forEach((p, i)=> solutionColors.set(p.id, palette[i % palette.length]));
+
+      for(let r=0;r<state.rows;r++){
+        for(let c=0;c<state.cols;c++){
+          const cellKey = key(r,c);
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.className = 'cell' + (((r+c)%2)?' alt':'');
+          div.dataset.r = r;
+          div.dataset.c = c;
+          div.setAttribute('aria-label', `マス ${r+1}-${c+1}`);
+
+          const assigned = assignedAt(cellKey);
+          if(assigned !== null){
+            div.classList.add('locked');
+            div.style.background = solutionColors.get(assigned);
+          }
+          if(state.revealSolution && assigned === null){
+            const p = pieceForCell(cellKey);
+            div.classList.add('blocked');
+            div.style.background = solutionColors.get(p.id);
+          }
+          if(dragRect && dragRect.cells.has(cellKey)) div.classList.add('drag');
+
+          const clue = state.clueMap.get(cellKey);
+          if(clue){
+            const span = document.createElement('span');
+            span.className = 'num';
+            span.textContent = clue;
+            div.appendChild(span);
+          }
+          boardEl.appendChild(div);
+        }
+      }
+    }
+
+    function cellFromPoint(x,y){
+      const el = document.elementFromPoint(x,y);
+      if(!el) return null;
+      const cell = el.closest ? el.closest('.cell') : null;
+      if(!cell) return null;
+      return {r:Number(cell.dataset.r), c:Number(cell.dataset.c)};
+    }
+
+    function makeDragRect(from,to){
+      const r1=Math.min(from.r,to.r), r2=Math.max(from.r,to.r);
+      const c1=Math.min(from.c,to.c), c2=Math.max(from.c,to.c);
+      const cells = new Set(rectCells(r1,c1,r2,c2));
+      return {r1,c1,r2,c2,cells,area:(r2-r1+1)*(c2-c1+1)};
+    }
+
+    function validateRect(rect){
+      const clues=[];
+      for(const ck of rect.cells){
+        if(state.assigned.has(ck)) return {ok:false,msg:'確定済みのマスとは重ねられません'};
+        const clue = state.clueMap.get(ck);
+        if(clue) clues.push({cell:ck,value:clue});
+      }
+      if(clues.length !== 1) return {ok:false,msg:'長方形には数字が1つだけ必要です'};
+      if(clues[0].value !== rect.area) return {ok:false,msg:`面積 ${rect.area} が数字 ${clues[0].value} と一致しません`};
+      return {ok:true,clue:clues[0]};
+    }
+
+    function commitRect(rect){
+      const check = validateRect(rect);
+      if(!check.ok){
+        showToast(check.msg);
+        flashRect(rect);
+        return;
+      }
+      const piece = state.pieces.find(p => p.clue === check.clue.cell);
+      state.history.push(new Map(state.assigned));
+      for(const ck of piece.cells) state.assigned.set(ck, piece.id);
+      dragRect = null;
+      render();
+      if(allCovered()){
+        const solved = isSolvedExactly();
+        showToast(solved ? 'クリア！ 新しい問題も作れます' : '全部埋まりました。まだ誤りがあります');
+      }
+    }
+
+    function flashRect(rect){
+      dragRect = rect;
+      render();
+      [...boardEl.children].forEach(el=>{
+        const k = key(Number(el.dataset.r), Number(el.dataset.c));
+        if(rect.cells.has(k)) el.classList.add('bad');
+      });
+      setTimeout(()=>{ dragRect = null; render(); }, 320);
+    }
+
+    function isSolvedExactly(){
+      if(!allCovered()) return false;
+      return state.pieces.every(p => p.cells.every(ck => state.assigned.get(ck) === p.id));
+    }
+
+    function newPuzzle(){
+      state = buildState(difficulties[difficultyIndex]);
+      dragRect = null;
+      dragStart = null;
+      render();
+      showToast('新しい問題を生成しました');
+    }
+
+    function revealHint(){
+      const remaining = state.pieces.filter(p => !p.cells.every(ck => state.assigned.get(ck) === p.id));
+      if(!remaining.length){ showToast('すべて確定済みです'); return; }
+      const pick = remaining[randInt(0, remaining.length-1)];
+      state.history.push(new Map(state.assigned));
+      for(const ck of pick.cells) state.assigned.set(ck, pick.id);
+      render();
+      showToast(`ヒント: 面積 ${pick.area} の長方形を1つ確定しました`);
+    }
+
+    function undo(){
+      const prev = state.history.pop();
+      if(!prev){ showToast('これ以上戻せません'); return; }
+      state.assigned = prev;
+      render();
+    }
+
+    function clearDragSelection(){
+      dragRect = null;
+      render();
+    }
+
+    function toggleDifficulty(){
+      difficultyIndex = (difficultyIndex + 1) % difficulties.length;
+      newPuzzle();
+    }
+
+    function checkBoard(){
+      if(isSolvedExactly()) showToast('正解です');
+      else if(allCovered()) showToast('全部埋まっていますが、配置に誤りがあります');
+      else showToast('まだ未確定のマスがあります');
+    }
+
+    function solveBoard(){
+      state.history.push(new Map(state.assigned));
+      state.assigned = new Map();
+      state.pieces.forEach(p => p.cells.forEach(ck => state.assigned.set(ck, p.id)));
+      render();
+      showToast('答えを表示しました');
+    }
+
+    boardEl.addEventListener('pointerdown', e => {
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      if(!cell) return;
+      dragging = true;
+      dragStart = cell;
+      dragRect = makeDragRect(cell, cell);
+      boardEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      render();
+    });
+    boardEl.addEventListener('pointermove', e => {
+      if(!dragging || !dragStart) return;
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      if(!cell) return;
+      dragRect = makeDragRect(dragStart, cell);
+      e.preventDefault();
+      render();
+    });
+    boardEl.addEventListener('pointerup', e => {
+      if(!dragging) return;
+      dragging = false;
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      if(cell && dragStart){ commitRect(makeDragRect(dragStart, cell)); }
+      dragStart = null;
+      e.preventDefault();
+    });
+    boardEl.addEventListener('pointercancel', ()=>{ dragging=false; dragStart=null; dragRect=null; render(); });
+
+    document.getElementById('newBtn').addEventListener('click', newPuzzle);
+    difficultyBtn.addEventListener('click', toggleDifficulty);
+    document.getElementById('hintBtn').addEventListener('click', revealHint);
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('eraseBtn').addEventListener('click', clearDragSelection);
+    document.getElementById('solveBtn').addEventListener('click', solveBoard);
+    document.getElementById('checkBtn').addEventListener('click', checkBoard);
+    document.getElementById('helpBtn').addEventListener('click', ()=>{ helpPanel.classList.add('show'); helpPanel.setAttribute('aria-hidden','false'); });
+    document.getElementById('closeHelpBtn').addEventListener('click', ()=>{ helpPanel.classList.remove('show'); helpPanel.setAttribute('aria-hidden','true'); });
+    helpPanel.addEventListener('click', e => { if(e.target === helpPanel){ helpPanel.classList.remove('show'); helpPanel.setAttribute('aria-hidden','true'); } });
+
+    window.addEventListener('keydown', e => {
+      if(e.key === 'Escape') { helpPanel.classList.remove('show'); helpPanel.setAttribute('aria-hidden','true'); clearDragSelection(); }
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undo(); }
+      if(e.key.toLowerCase() === 'h') revealHint();
+      if(e.key.toLowerCase() === 'n') newPuzzle();
+    });
+
+    newPuzzle();
+  </script>
+</body>
+</html>
