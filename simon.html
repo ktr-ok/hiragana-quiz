@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ぴかぴかサイモン</title>
+<style>
+:root{--bg:#fff7ea;--surface:#fffdfa;--surface2:#fff3d9;--text:#40311d;--muted:#796857;--primary:#ff8b5e;--border:rgba(104,72,20,.16);--shadow:0 10px 24px rgba(114,76,27,.12)}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic",sans-serif;background:linear-gradient(180deg,var(--bg),#ffe7bf);color:var(--text)}
+.app{max-width:920px;margin:0 auto;padding:16px}
+.hero,.panel{background:var(--surface);border:1px solid var(--border);border-radius:32px;box-shadow:var(--shadow)}
+.hero{padding:24px;margin-bottom:16px}
+.hero h1{font-size:clamp(2rem,4vw,3.3rem);margin:.3em 0}
+.hero p{color:var(--muted);font-size:1.2rem;max-width:28ch}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pill{background:#fff;border:1px solid var(--border);border-radius:22px;padding:12px;text-align:center}
+.pill span{display:block;color:var(--muted);font-size:.9rem}
+.pill strong{font-size:1.8rem}
+.panel{padding:20px}
+.msg{min-height:74px;display:grid;place-items:center;text-align:center;border-radius:22px;background:var(--surface2);font-size:1.6rem;font-weight:700;padding:12px;margin-bottom:16px}
+.board{width:min(100%,560px);margin:0 auto 16px;aspect-ratio:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;border-radius:36px;background:#ffe8c7;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 18px 30px rgba(114,76,27,.16)}
+.pad{position:relative;min-height:180px;border:none;border-radius:34px;overflow:hidden;box-shadow:inset 0 -8px 0 rgba(0,0,0,.08);cursor:pointer;transition:transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease}
+.pad:before{content:attr(data-emoji);position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(3rem,9vw,4.8rem)}
+.pad:after{content:attr(data-label);position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(255,255,255,.84);padding:.3rem .8rem;border-radius:999px;font-weight:700}
+.red{background:linear-gradient(180deg,#ff9b92,#ff6e67)}
+.blue{background:linear-gradient(180deg,#81c7ff,#57a3ff)}
+.yellow{background:linear-gradient(180deg,#ffe27e,#f6bf37)}
+.green{background:linear-gradient(180deg,#84e59f,#52bc71)}
+.pad.active{transform:scale(1.03);filter:brightness(1.12);box-shadow:0 0 0 10px rgba(255,255,255,.45),0 0 30px rgba(255,255,255,.34),inset 0 -4px 0 rgba(0,0,0,.05)}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{min-height:64px;border:none;border-radius:999px;font-size:1.1rem;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.sub{background:#fff;border:1px solid var(--border)}
+.help{margin-top:16px;color:var(--muted);font-size:1rem;text-align:center}
+
+/* ロボットのアーム */
+.magic-hand{
+  position:absolute;left:50%;top:-200px;width:44px;height:200px;
+  margin-left:-22px;pointer-events:none;opacity:0;z-index:10;
+  background-image:url('data:image/svg+xml;utf8,<svg viewBox="0 0 40 200" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="0" width="16" height="174" fill="%2394a3b8"/><rect x="18" y="0" width="4" height="174" fill="%23475569"/><rect x="10" y="160" width="20" height="4" fill="%2364748b"/><rect x="10" y="172" width="20" height="8" rx="3" fill="%23334155"/><g fill="none" stroke="%238f9cab" stroke-width="5" stroke-linecap="round"><path d="M 14 180 C 0 180, 0 196, 14 196"/><path d="M 26 180 C 40 180, 40 196, 26 196"/></g></svg>');
+  background-size:contain;background-repeat:no-repeat;
+}
+.show-robot .magic-hand{opacity:1}
+/* 腕の動きをゆっくりに（0.4s -> 0.7s）し、イージングを自然にする */
+.pad.active .magic-hand{animation:magicHandExt 0.7s cubic-bezier(0.25, 1, 0.5, 1)}
+
+@keyframes magicHandExt{
+  0%{transform:translateY(0)}
+  40%{transform:translateY(120px)}
+  50%{transform:translateY(120px)} /* 押した状態で少し止まる */
+  100%{transform:translateY(0)}
+}
+@media (max-width:640px){
+  .row,.controls{grid-template-columns:1fr}
+  .pad{min-height:138px}
+  .magic-hand{width:36px;height:160px;top:-160px;margin-left:-18px}
+  @keyframes magicHandExt{
+    0%{transform:translateY(0)}
+    40%{transform:translateY(90px)}
+    50%{transform:translateY(90px)}
+    100%{transform:translateY(0)}
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="hero">
+  <div style="display:inline-block;background:#fff3d9;border-radius:999px;padding:8px 14px;color:#796857;font-weight:700">3さいでも あそびやすい</div>
+  <h1>ひかる じゅんばんを まねっこしよう</h1>
+  <p>おてほんの ときは、ロボットの うでが のびて おしてくれるよ。</p>
+  <div class="row">
+    <div class="pill"><span>れべる</span><strong id="level">0</strong></div>
+    <div class="pill"><span>さいこう</span><strong id="best">0</strong></div>
+    <div class="pill"><span>スピード</span><strong id="speed">ゆっくり</strong></div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="msg" id="message">したの ボタンで はじめよう</div>
+  <div class="board" id="board">
+    <button class="pad red" data-pad="0" data-label="あか" data-emoji="🍎" aria-label="あか">
+      <span class="magic-hand" aria-hidden="true"></span>
+    </button>
+    <button class="pad blue" data-pad="1" data-label="あお" data-emoji="🐟" aria-label="あお">
+      <span class="magic-hand" aria-hidden="true"></span>
+    </button>
+    <button class="pad yellow" data-pad="2" data-label="きいろ" data-emoji="⭐" aria-label="きいろ">
+      <span class="magic-hand" aria-hidden="true"></span>
+    </button>
+    <button class="pad green" data-pad="3" data-label="みどり" data-emoji="🐸" aria-label="みどり">
+      <span class="magic-hand" aria-hidden="true"></span>
+    </button>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="startBtn">スタート</button>
+    <button class="btn sub" id="repeatBtn">もういちど みる</button>
+  </div>
+  <div class="help" id="hint">あか・あお・きいろ・みどり の 4つだけ。</div>
+</section>
+</div>
+
+<script>
+(()=>{
+  const pads=[...document.querySelectorAll('.pad')],msg=document.getElementById('message'),hint=document.getElementById('hint'),level=document.getElementById('level'),bestEl=document.getElementById('best'),speed=document.getElementById('speed'),startBtn=document.getElementById('startBtn'),repeatBtn=document.getElementById('repeatBtn');
+  let sequence=[],playerIndex=0,round=0,best=0,accepting=false,showing=false,audioCtx=null;
+  const tones=[261.63,329.63,392,523.25],labels=['あか','あお','きいろ','みどり'];
+
+  function ensureAudio(){if(!audioCtx){const C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume()}
+
+  function beep(i,d=.22){
+    if(!audioCtx)return;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=tones[i];
+    g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.14,audioCtx.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
+    o.connect(g).connect(audioCtx.destination);
+    o.start();o.stop(audioCtx.currentTime+d+.02);
+  }
+
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+  // フラッシュの時間を少し長めに調整し、腕の動き（0.7s）と合うようにする
+  const getSpeed=()=>round>=8?{flash:600,gap:200,label:'はやい'}:round>=4?{flash:750,gap:250,label:'ふつう'}:{flash:900,gap:300,label:'ゆっくり'};
+
+  function update(){level.textContent=round;bestEl.textContent=best;speed.textContent=getSpeed().label}
+  function setMessage(t){msg.textContent=t}
+
+  async function flashPad(i,robotDemo=false){
+    const pad=pads[i],s=getSpeed();
+    if(robotDemo) pad.classList.add('show-robot');
+    pad.classList.add('active');
+
+    // 音の鳴るタイミングを腕が下りるタイミング（約0.25秒後）に合わせる
+    if(robotDemo) {
+      setTimeout(()=>beep(i,Math.max(.18,s.flash/1000-.1)), 250);
+    } else {
+      beep(i,Math.max(.18,s.flash/1000-.1));
+    }
+
+    await wait(s.flash);
+    pad.classList.remove('active');
+    if(robotDemo) pad.classList.remove('show-robot');
+  }
+
+  async function playSequence(){
+    if(!sequence.length)return;
+    showing=true;accepting=false;
+    setMessage('ロボットの うでが おてほんを みせるよ');
+    hint.textContent='うごく手を みてね。';
+    for(const step of sequence){
+      await wait(getSpeed().gap);
+      await flashPad(step,true);
+    }
+    await wait(180);
+    showing=false;accepting=true;playerIndex=0;
+    setMessage('こんどは きみの ばん');
+    hint.textContent='おなじ じゅんばんで たっちしよう。';
+  }
+
+  function nextColor(){return Math.floor(Math.random()*4)}
+
+  async function startGame(){
+    ensureAudio();sequence=[nextColor()];round=1;update();
+    startBtn.textContent='もういちど スタート';
+    await playSequence();
+  }
+
+  async function nextRound(){
+    round+=1;best=Math.max(best,round-1);sequence.push(nextColor());
+    update();setMessage('できた！');hint.textContent='1こ ふえるよ。';
+    await wait(700);await playSequence();
+  }
+
+  async function handlePad(i){
+    ensureAudio();if(!accepting||showing)return;
+    await flashPad(i,false);
+    if(sequence[playerIndex]!==i){
+      accepting=false;best=Math.max(best,round-1);update();
+      setMessage('おしい！ もういっかい');
+      hint.textContent=`さいこうは ${best}。スタートで さいしょから。`;
+      sequence=[];round=0;playerIndex=0;
+      startBtn.textContent='さいしょから スタート';return;
+    }
+    playerIndex++;
+    if(playerIndex===sequence.length){
+      accepting=false;
+      if(round>=10){
+        best=Math.max(best,round);update();
+        setMessage('やったね！ だいせいこう');hint.textContent='すごい！';
+        sequence=[];round=0;startBtn.textContent='もういちど あそぶ';return;
+      }
+      await nextRound();
+    }else{
+      setMessage(`${labels[sequence[playerIndex]]} が つぎだよ`);
+    }
+  }
+
+  pads.forEach((p,i)=>p.addEventListener('click',()=>handlePad(i)));
+  startBtn.addEventListener('click',()=>{if(!showing)startGame()});
+  repeatBtn.addEventListener('click',()=>{if(sequence.length&&!showing)playSequence()});
+  update();
+})();
+</script>
+</body>
+</html>
