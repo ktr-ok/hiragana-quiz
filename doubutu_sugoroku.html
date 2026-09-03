@@ -1,21 +1,540 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>わくわく どうぶつすごろく</title>
-  <style>
-    :root{--ink:#42362b;--cream:#fff8df;--coral:#f46f61;--blue:#4f9ee9;--green:#6fc68b;--yellow:#f7c84d;--purple:#a980db}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:linear-gradient(#a8e3fa 0 28%,#f8dea2 28%);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;font-weight:700;min-height:100vh;user-select:none}button{font:inherit;font-weight:800;color:var(--ink);border:0;cursor:pointer;touch-action:manipulation}.app{max-width:1180px;margin:auto;padding:max(16px,env(safe-area-inset-top)) 18px max(22px,env(safe-area-inset-bottom))}header{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(22px,4vw,34px);margin:0}.turn{background:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 4px 0 #b8d8df;white-space:nowrap}.players{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.player{min-height:61px;border-radius:16px;padding:8px;background:#fff8e8;opacity:.55;display:flex;align-items:center;gap:6px;justify-content:center;box-shadow:0 3px 0 rgba(97,72,37,.16)}.player.active{opacity:1;outline:4px solid var(--yellow);transform:translateY(-2px)}.face{font-size:25px}.name{font-size:14px}.place{font-size:12px;color:#806b55}.map-wrap{overflow-x:auto;overscroll-behavior-x:contain;border-radius:26px;background:#9adcf4;box-shadow:inset 0 0 0 7px rgba(255,255,255,.55);scroll-behavior:smooth;-webkit-overflow-scrolling:touch}.map{width:2160px;height:590px;position:relative;background:linear-gradient(90deg,rgba(255,255,255,.25) 1px,transparent 1px) 0 0/90px 90px,linear-gradient(#9adcf4 0 53%,#a5d97d 53%)}.cloud{position:absolute;color:#fff;opacity:.85;font-size:54px}.c1{left:210px;top:35px}.c2{left:1270px;top:70px}.c3{left:1820px;top:20px}.road{position:absolute;inset:0;width:2160px;height:590px;pointer-events:none}.road polyline{fill:none;stroke:#f7e8c3;stroke-width:58;stroke-linecap:round;stroke-linejoin:round}.road polyline+polyline{stroke:#d8be86;stroke-width:5;stroke-dasharray:3 22}.space{position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;display:grid;place-items:center;background:#fff9e9;border:5px solid #fff;box-shadow:0 4px 0 rgba(92,76,51,.24);font-size:27px;cursor:pointer}.space small{position:absolute;bottom:-19px;font-size:12px;white-space:nowrap;color:#5d5044}.space.start,.space.goal{width:94px;height:94px;margin:-47px 0 0 -47px;font-size:33px}.space.start{background:var(--green)}.space.goal{background:var(--coral)}.space.event{background:#fff0aa}.space.back{background:#d8c0f5}.token{position:absolute;width:40px;height:40px;z-index:5;font-size:36px;line-height:40px;text-align:center;pointer-events:none;filter:drop-shadow(0 3px 1px rgba(48,39,31,.25));transition:left .48s ease,top .48s ease}.controls{display:grid;grid-template-columns:100px 210px;grid-template-areas:"message message" "dice advance";justify-content:center;align-items:center;gap:12px;padding:15px 0 3px}.dice,.advance{height:78px;border-radius:21px;box-shadow:0 6px 0 #d5c8af}.dice{grid-area:dice;width:100px;background:#fff;color:#ee6254;font-size:42px}.advance{grid-area:advance;width:210px;background:var(--yellow);font-size:17px}.dice:disabled,.advance:disabled{opacity:.5}.message{grid-area:message;font-size:clamp(16px,2.6vw,21px);text-align:center;min-height:30px;max-width:600px}.tip{text-align:center;font-size:13px;color:#705f4f;margin:8px}.modal{position:fixed;inset:0;z-index:20;background:rgba(45,57,71,.44);display:grid;place-items:center;padding:20px}.modal.hidden{display:none}.panel{background:var(--cream);width:min(510px,100%);padding:27px;border-radius:30px;text-align:center;box-shadow:0 12px 0 rgba(58,45,32,.25)}.panel h2{margin:0 0 8px;font-size:29px}.panel p{margin:0 0 17px}.choices{display:flex;gap:10px;justify-content:center}.choices button{width:94px;height:75px;border-radius:18px;background:#fff;box-shadow:0 4px 0 #d7c49d;font-size:17px}.choices button.selected{background:var(--yellow);outline:3px solid #e99f32}.begin,.again{margin-top:18px;background:var(--coral);color:#fff;border-radius:18px;min-height:58px;padding:0 34px;font-size:19px;box-shadow:0 5px 0 #c55349}.winner{font-size:68px;margin:0}@media(max-width:600px){.app{padding-left:12px;padding-right:12px}.players{gap:5px}.player{padding:5px;min-height:52px}.face{font-size:20px}.name,.place{font-size:11px}.controls{grid-template-columns:72px minmax(176px,210px);gap:8px}.dice,.advance{height:67px}.dice{width:72px;font-size:34px}.advance{width:100%;font-size:15px}.map-wrap{border-radius:19px}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>わくわく どうぶつすごろく</title>
+<style>
+:root{--ink:#40362e;--cream:#fff8e4;--coral:#f06b5c;--yellow:#f7c64b;--blue:#57a8ed}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;min-height:100vh;background:linear-gradient(#b7eafa 0 29%,#f6dda2 29%);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;font-weight:700;user-select:none}button{border:0;font:inherit;font-weight:800;color:var(--ink);cursor:pointer;touch-action:manipulation}.app{max-width:1180px;margin:auto;padding:max(15px,env(safe-area-inset-top)) 18px max(22px,env(safe-area-inset-bottom))}header{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{margin:0;font-size:clamp(23px,4vw,34px)}.turn{padding:10px 15px;border-radius:99px;background:#fff;box-shadow:0 4px #b7d6df;white-space:nowrap}.players{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.player{min-height:59px;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:16px;background:#fff8e9;box-shadow:0 3px rgba(89,68,38,.16);opacity:.5}.player.active{opacity:1;outline:4px solid var(--yellow);transform:translateY(-2px)}.face{font-size:25px}.name{font-size:14px}.place{font-size:11px;color:#806e5a}.map-wrap{overflow-x:auto;overscroll-behavior-x:contain;border-radius:27px;background:#9cdbef;box-shadow:inset 0 0 0 7px rgba(255,255,255,.55);scroll-behavior:smooth;-webkit-overflow-scrolling:touch}.map{position:relative;width:3060px;height:740px;background:linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px) 0/90px 90px,linear-gradient(#9cdbef 0 44%,#a9d978 44%)}.cloud{position:absolute;color:#fff;font-size:57px;opacity:.85}.road{position:absolute;inset:0;width:3060px;height:740px;pointer-events:none}.road polyline{fill:none;stroke:#f7e7bd;stroke-width:58;stroke-linecap:round;stroke-linejoin:round}.road polyline.dots{stroke:#d5ba80;stroke-width:5;stroke-dasharray:3 22}.node{position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;display:grid;place-items:center;border-radius:50%;background:#fff9e8;border:5px solid #fff;box-shadow:0 4px rgba(80,64,42,.22);font-size:28px;cursor:pointer}.node.start,.node.goal,.node.fork{width:94px;height:94px;margin:-47px 0 0 -47px;font-size:34px}.node.start{background:#76c78d}.node.goal{background:var(--coral)}.node.fork{background:#9cdaf2}.node.event{background:#fff0a9}.node.back{background:#dbc7f2}.node.warp{background:#c9a6ff}.node.chance{background:#ffd1e6}.node.reroll{background:#a6e3ff}.token{position:absolute;z-index:5;width:42px;height:42px;text-align:center;font-size:38px;line-height:42px;pointer-events:none;filter:drop-shadow(0 3px 1px rgba(50,40,30,.3));transition:left .45s ease,top .45s ease}.controls{display:grid;grid-template-columns:112px 220px;grid-template-areas:"message message" "dice advance";justify-content:center;gap:12px;padding:15px 0 2px}.message{grid-area:message;min-height:31px;text-align:center;font-size:clamp(16px,2.5vw,21px)}.dice{grid-area:dice;width:112px;height:84px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:13px;border-radius:22px;background:#fff;box-shadow:0 6px #d4c5a9}.dot{width:13px;height:13px;align-self:center;justify-self:center;border-radius:50%;background:#e0d7c6;opacity:.25}.dot.on{background:#eb6253;opacity:1}.advance{grid-area:advance;width:220px;height:84px;border-radius:22px;background:var(--yellow);font-size:18px;box-shadow:0 6px #d0a33e}.dice:disabled,.advance:disabled{opacity:.48}.tip{text-align:center;margin:8px;font-size:13px;color:#705e4d}.modal{position:fixed;z-index:20;inset:0;display:grid;place-items:center;padding:20px;background:rgba(46,55,63,.45)}.modal.hidden{display:none}.panel{width:min(540px,100%);padding:26px;border-radius:31px;background:var(--cream);text-align:center;box-shadow:0 12px rgba(50,39,26,.25)}.panel h2{margin:0 0 8px;font-size:29px}.panel p{margin:0 0 16px}.choices{display:flex;justify-content:center;gap:10px}.choices button{width:100px;height:75px;border-radius:18px;background:#fff;box-shadow:0 4px #d7c49d}.choices button.selected{background:var(--yellow);outline:3px solid #e5a135}.begin,.again{min-height:57px;margin-top:18px;padding:0 32px;border-radius:18px;background:var(--coral);color:#fff;font-size:19px;box-shadow:0 5px #bf5249}.branch-buttons{display:flex;gap:13px}.branch-buttons button{flex:1;min-height:112px;padding:10px;border-radius:21px;background:#fff;box-shadow:0 5px #d7c49d;font-size:17px}.branch-buttons button:first-child{background:#ffe889}.branch-buttons button:last-child{background:#bce5aa}.winner{font-size:68px;margin:0}.chance-buttons{display:flex;justify-content:center;gap:16px}.chance-buttons button{width:110px;height:100px;border-radius:20px;background:#fff;box-shadow:0 4px #d7c49d;font-size:36px}@media(max-width:600px){.app{padding-left:12px;padding-right:12px}.players{gap:5px}.player{min-height:52px;padding:4px}.face{font-size:20px}.name,.place{font-size:11px}.controls{grid-template-columns:88px minmax(175px,220px);gap:8px}.dice{width:88px;height:72px;padding:11px}.dot{width:11px;height:11px}.advance{width:100%;height:72px;font-size:16px}.map-wrap{border-radius:20px}}
+</style>
 </head>
-<body><main class="app"><header><h1>わくわく どうぶつすごろく</h1><div class="turn" id="turn">じゅんびちゅう</div></header><section class="players" id="players" aria-label="プレイヤー"></section><section class="map-wrap" id="mapWrap" aria-label="すごろく盤面。横にスクロールできます"><div class="map" id="map"><span class="cloud c1">☁</span><span class="cloud c2">☁</span><span class="cloud c3">☁</span><svg class="road" viewBox="0 0 2160 590" aria-hidden="true"><polyline id="path"></polyline><polyline id="pathDots"></polyline></svg></div></section><section class="controls"><button class="dice" id="dice" type="button" aria-label="サイコロをふる">🎲</button><button class="advance" id="advance" type="button" disabled>1マス すすむ</button><div class="message" id="message" aria-live="polite">人数をえらんで、スタート！</div></section><p class="tip">盤面は指で横にスクロールできます</p></main><div class="modal" id="setup"><div class="panel"><h2>なんにんで あそぶ？</h2><p>2人から4人で遊べるよ</p><div class="choices" id="choices"><button data-count="2" class="selected" type="button">2人<br>🐰 🐻</button><button data-count="3" type="button">3人<br>🐰 🐻 🐱</button><button data-count="4" type="button">4人<br>🐰 🐻 🐱 🐸</button></div><button class="begin" id="begin" type="button">スタート！</button></div></div><div class="modal hidden" id="finish"><div class="panel"><p class="winner" id="winnerFace">🐰</p><h2 id="winnerTitle">いちばんのり！</h2><p id="winnerText"></p><button class="again" id="again" type="button">もう いちど</button></div></div>
+<body>
+<main class="app">
+  <header><h1>わくわく どうぶつすごろく</h1><div class="turn" id="turn">じゅんびちゅう</div></header>
+  <section class="players" id="players"></section>
+  <section class="map-wrap" id="mapWrap" aria-label="横にスクロールできるすごろく盤"><div class="map" id="map"><span class="cloud" style="left:160px;top:45px">☁</span><span class="cloud" style="left:1390px;top:62px">☁</span><span class="cloud" style="left:2580px;top:35px">☁</span><svg class="road" viewBox="0 0 3060 740"><g id="roads"></g></svg></div></section>
+  <section class="controls"><div class="message" id="message" aria-live="polite">人数をえらんで、スタート！</div><button class="dice" id="dice" type="button" aria-label="サイコロをふる"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></button><button class="advance" id="advance" type="button" disabled>すすむ</button></section>
+  <p class="tip">盤面は指で横にスクロールできます。分岐では好きな道をえらぼう！　💫 はワープ、🎲 はもう1回、🎁 はガチャイベント。</p>
+</main>
+
+<div class="modal" id="setup"><div class="panel"><h2>なんにんで あそぶ？</h2><p>2人から4人で遊べるよ</p><div class="choices" id="choices"><button class="selected" data-count="2">2人<br>🐰 🐻</button><button data-count="3">3人<br>🐰 🐻 🐱</button><button data-count="4">4人<br>🐰 🐻 🐱 🐸</button></div><button class="begin" id="begin">スタート！</button></div></div>
+<div class="modal hidden" id="fork"><div class="panel"><h2>どっちの みちに する？</h2><p>にじは短い。もりは長いけど、いいことが多いよ！</p><div class="branch-buttons"><button id="rainbow" type="button">🌈<br>にじの ちかみち<br><small>短いけど、すべるかも</small></button><button id="forest" type="button">🌳<br>もりの みち<br><small>長いけど、おたからが多いよ</small></button></div></div></div>
+<div class="modal hidden" id="chance"><div class="panel"><h2>🎁 ガチャイベント！</h2><p>好きな たまごを タップしてね</p><div class="chance-buttons"><button data-pick="0">🥚</button><button data-pick="1">🥚</button><button data-pick="2">🥚</button></div></div></div>
+<div class="modal hidden" id="finish"><div class="panel"><p class="winner">🎉</p><h2>みんな ゴール！</h2><p id="ranking"></p><button class="again" id="again">もう いちど</button></div></div>
+
 <script>
-const faces=['🐰','🐻','🐱','🐸'],colors=['#f46f61','#4f9ee9','#f2b93b','#9b78d3'],names=['うさぎ','くま','ねこ','かえる'];const y=[395,320,230,165,215,300,390,435,365,275,190,155,220,320,410,445,385,295,205,160,220,310,400,435,365],x=y.map((_,i)=>70+i*83),event={3:['🌈','にじの ちかみち！','forward',2],6:['🍎','りんごで げんき！','forward',1],9:['🌧️','あめで すべった！','back',2],13:['🎈','ふうせんで とんだ！','forward',2],17:['🐌','かたつむりと おさんぽ','back',1],21:['⭐','おほしさま パワー！','forward',2]};const map=document.getElementById('map'),wrap=document.getElementById('mapWrap'),dice=document.getElementById('dice'),advance=document.getElementById('advance'),message=document.getElementById('message');let count=2,players=[],current=0,rolling=false,steps=0,direction=1,pending=null,finishOrder=[];
-function spaceInfo(i){if(i===0)return'🚩 スタート！ ゴールまで 24マス';if(i===24)return'🏆 ゴール！ ここに ついたら いちばんのり';if(event[i]){let [icon,text,type,amount]=event[i];return `${icon} ${text} とまると ${amount}マス ${type==='forward'?'すすむ':'もどる'}`};return `🌼 ふつうのマス。ゴールまで あと ${24-i}マス`}
-function buildBoard(){document.getElementById('path').setAttribute('points',x.map((v,i)=>v+','+y[i]).join(' '));document.getElementById('pathDots').setAttribute('points',x.map((v,i)=>v+','+y[i]).join(' '));for(let i=0;i<x.length;i++){let s=document.createElement('div');s.className='space'+(i===0?' start':i===x.length-1?' goal':event[i]?' event':'');if(event[i]?.[2]==='back')s.classList.add('back');s.style.left=x[i]+'px';s.style.top=y[i]+'px';s.textContent=i===0?'🚩':i===x.length-1?'🏆':event[i]?event[i][0]:'🌼';s.setAttribute('role','button');s.setAttribute('aria-label',spaceInfo(i));s.addEventListener('click',()=>{if(!rolling)message.textContent=spaceInfo(i)});let n=document.createElement('small');n.textContent=i===0?'スタート':i===x.length-1?'ゴール':'';s.append(n);map.append(s)}}
-function draw(){let holder=document.getElementById('players');holder.innerHTML='';players.forEach((p,i)=>{let rank=finishOrder.indexOf(i)+1;let d=document.createElement('div');d.className='player'+(i===current&&!p.finished?' active':'');d.innerHTML=`<span class="face">${faces[i]}</span><span><span class="name">${names[i]}</span><br><span class="place">${p.finished?rank+'ばんめに ゴール！':p.pos+' マス'}</span></span>`;holder.append(d)});map.querySelectorAll('.token').forEach(e=>e.remove());players.forEach((p,i)=>{let t=document.createElement('div');t.className='token';t.textContent=faces[i];t.style.left=(x[p.pos]-20+(i%2?16:-16))+'px';t.style.top=(y[p.pos]-20+(i>1?16:-16))+'px';map.append(t)});document.getElementById('turn').textContent=players.length?`${faces[current]} ${names[current]}の ばん`:'じゅんびちゅう'}
-function center(pos){wrap.scrollTo({left:Math.max(0,Math.min(x[pos]-wrap.clientWidth/2,2160-wrap.clientWidth)),behavior:'smooth'})}function start(){players=Array.from({length:count},()=>({pos:0,finished:false}));current=0;steps=0;pending=null;finishOrder=[];advance.disabled=true;document.getElementById('setup').classList.add('hidden');message.textContent=`${faces[0]} ${names[0]}の ばん。サイコロをふって！`;draw();center(0)}function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-async function roll(){if(rolling||!players.length)return;rolling=true;dice.disabled=true;for(let i=0;i<10;i++){dice.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][Math.floor(Math.random()*6)];await sleep(80)}steps=Math.min(Math.floor(Math.random()*6)+1,24-players[current].pos);direction=1;dice.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][steps-1];message.textContent=`${steps} でた！ 「1マス すすむ」を タップしてね`;advance.textContent='1マス すすむ';advance.disabled=false}
-function endTurn(){do{current=(current+1)%players.length}while(players[current].finished);message.textContent=`${faces[current]} ${names[current]}の ばん。サイコロをふって！`;draw();advance.disabled=true;dice.disabled=false;rolling=false}
-function land(){let p=players[current];if(p.pos===24){reachGoal(current);return}if(event[p.pos]){pending=event[p.pos];let [icon,text,type,amount]=pending;message.textContent=`${icon} ${text} ${amount}マス ${type==='forward'?'すすむ':'もどる'}。タップしてね`;advance.textContent='イベントを すすめる';return}endTurn()}
-function advanceStep(){if(!rolling)return;if(pending){let [icon,text,type,amount]=pending;pending=null;steps=amount;direction=type==='forward'?1:-1;advance.textContent=direction===1?'1マス すすむ':'1マス もどる';message.textContent=`${amount}マス ${direction===1?'すすむ':'もどる'}よ。タップしてね`;return}if(steps<=0)return;let p=players[current];p.pos=Math.max(0,Math.min(24,p.pos+direction));steps--;draw();center(p.pos);if(steps>0){message.textContent=`あと ${steps}マス。タップしてね`}else land()}
-function reachGoal(i){players[i].finished=true;finishOrder.push(i);draw();advance.disabled=true;if(finishOrder.length<players.length){message.textContent=`${faces[i]} ${names[i]}が ${finishOrder.length}ばんめに ゴール！ まだまだ つづくよ`;setTimeout(endTurn,850);return}document.getElementById('winnerFace').textContent='🎉';document.getElementById('winnerTitle').textContent='みんな ゴール！';document.getElementById('winnerText').textContent=finishOrder.map((p,n)=>`${n+1}ばん ${faces[p]} ${names[p]}`).join('　');document.getElementById('finish').classList.remove('hidden');rolling=false}document.getElementById('choices').addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;count=+b.dataset.count;document.querySelectorAll('#choices button').forEach(q=>q.classList.toggle('selected',q===b))});document.getElementById('begin').onclick=start;document.getElementById('again').onclick=()=>{document.getElementById('finish').classList.add('hidden');document.getElementById('setup').classList.remove('hidden')};dice.onclick=roll;advance.onclick=advanceStep;buildBoard();
-</script></body></html>
+const faces=['🐰','🐻','🐱','🐸'];
+const names=['うさぎ','くま','ねこ','かえる'];
+
+const pre=[
+  [100,600],[190,570],[280,530],[370,485],[460,435],[550,385],
+  [640,350],[730,365],[820,400],[910,445],[1000,485],[1090,445]
+];
+
+// にじ: 短い上ルート（分岐後4マス）。
+// 復路が通る帯域(y≈90〜270)を避けるため、あえて分岐直後の低め(y≈340〜430)に留める。
+const rainbow=[
+  [1200,400],[1330,430],[1460,395],[1590,330]
+];
+
+// もり: 長い下ルート（分岐後7マス）
+const forest=[
+  [1170,555],[1260,625],[1370,655],[1480,640],[1590,585],[1690,515],[1740,445]
+];
+
+const outbound=[
+  [1840,505],[1940,570],[2040,620],[2140,655],[2240,660],[2340,640],
+  [2440,605],[2540,570],[2640,580],[2740,615],[2840,655],[2930,645]
+];
+
+// 復路は右端で上へ折り返した後、盤面上部(y≈90〜270)だけを左へ通る。
+// にじルートの帯域(y≈330〜430)とは完全に分離している。
+const returnPath=[
+  [3010,575],[3020,470],[3010,360],[2960,275],[2870,205],[2770,150],
+  [2660,110],[2550,95],[2440,105],[2330,130],[2220,160],[2110,190],
+  [2000,220],[1890,245],[1780,255],[1670,260],[1560,255],[1450,240],
+  [1340,215],[1230,190],[1120,160],[1010,135],[900,115],[790,100],
+  [680,95],[570,105],[460,130],[350,160],[250,190],[160,220],[80,110]
+];
+
+const routes={
+  pre,
+  rainbow:[pre.at(-1),...rainbow,...outbound,...returnPath],
+  forest:[pre.at(-1),...forest,...outbound,...returnPath]
+};
+
+const all=[...pre,...rainbow,...forest,...outbound,...returnPath];
+const unique=[...new Map(all.map(p=>[p.join(','),p])).values()];
+const forkKey=pre.at(-1).join(',');
+const goalKey=returnPath.at(-1).join(',');
+
+const events=new Map([
+  [pre[4].join(','),{icon:'🍎',text:'りんごで げんき！ 1マス すすむ！',type:'move',move:1}],
+  [pre[8].join(','),{icon:'🌧️',text:'あめで すべった！ 2マス もどる！',type:'move',move:-2}],
+
+  [rainbow[2].join(','),{icon:'🌈',text:'にじで 2マス すすむ！',type:'move',move:2}],
+  [rainbow[3].join(','),{icon:'🫧',text:'すべって 1マス もどる！',type:'move',move:-1}],
+
+  [forest[1].join(','),{icon:'🐿️',text:'どんぐりを みつけた！ 2マス すすむ！',type:'move',move:2}],
+  [forest[3].join(','),{icon:'🍯',text:'はちみつ ゲット！ 2マス すすむ！',type:'move',move:2}],
+  [forest[5].join(','),{icon:'🦉',text:'ふくろうに ちかみちを おしえてもらった！',type:'warp',target:outbound[2].join(',')}],
+
+  [outbound[2].join(','),{icon:'🎈',text:'ふうせんで 2マス すすむ！',type:'move',move:2}],
+  [outbound[6].join(','),{icon:'🎲',text:'もういちど サイコロを ふれる！',type:'reroll'}],
+  [outbound[9].join(','),{icon:'🎁',text:'ガチャイベント！',type:'chance'}],
+
+  [returnPath[5].join(','),{icon:'🐌',text:'かたつむりと おさんぽ。1マス もどる！',type:'move',move:-1}],
+  [returnPath[10].join(','),{icon:'💫',text:'ワープあなに おちた！',type:'warp',target:returnPath[18].join(',')}],
+  [returnPath[14].join(','),{icon:'🎲',text:'もういちど サイコロを ふれる！',type:'reroll'}],
+  [returnPath[21].join(','),{icon:'⭐',text:'おほしさま パワー！ 3マス すすむ！',type:'move',move:3}]
+]);
+
+const map=document.getElementById('map');
+const wrap=document.getElementById('mapWrap');
+const roads=document.getElementById('roads');
+const dice=document.getElementById('dice');
+const advance=document.getElementById('advance');
+const message=document.getElementById('message');
+const setupModal=document.getElementById('setup');
+const forkModal=document.getElementById('fork');
+const finishModal=document.getElementById('finish');
+const chanceModal=document.getElementById('chance');
+
+let count=2;
+let players=[];
+let current=0;
+let rolling=false;
+let steps=0;
+let pendingEvent=null;
+let finishOrder=[];
+let action='move';
+
+function drawRoad(points){
+  const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  poly.setAttribute('points',points.map(p=>p.join(',')).join(' '));
+  roads.append(poly);
+  const dotsLine=poly.cloneNode();
+  dotsLine.setAttribute('class','dots');
+  roads.append(dotsLine);
+}
+
+function info(key){
+  if(key===pre[0].join(',')) return '🚩 スタート！ ゴールまで冒険だよ';
+  if(key===forkKey) return '🔀 分岐点。好きな道をえらぼう！';
+  if(key===goalKey) return '🏆 ゴール！ 左端に帰ってきたよ';
+  const event=events.get(key);
+  return event?`${event.icon} ${event.text}`:'🌼 ふつうのマス。のんびり進もう';
+}
+
+function nodeClass(key,event){
+  let cls='node';
+  if(key===pre[0].join(',')) cls+=' start';
+  if(key===goalKey) cls+=' goal';
+  if(key===forkKey) cls+=' fork';
+  if(event){
+    if(event.type==='warp') cls+=' warp';
+    else if(event.type==='reroll') cls+=' reroll';
+    else if(event.type==='chance') cls+=' chance';
+    else{
+      cls+=' event';
+      if(event.move<0) cls+=' back';
+    }
+  }
+  return cls;
+}
+
+function build(){
+  drawRoad(pre);
+  drawRoad([pre.at(-1),...rainbow,...outbound,...returnPath]);
+  drawRoad([pre.at(-1),...forest,...outbound,...returnPath]);
+
+  unique.forEach(p=>{
+    const key=p.join(',');
+    const event=events.get(key);
+    const node=document.createElement('button');
+    node.type='button';
+    node.className=nodeClass(key,event);
+    node.style.left=p[0]+'px';
+    node.style.top=p[1]+'px';
+    node.textContent=key===pre[0].join(',')?'🚩':key===goalKey?'🏆':key===forkKey?'🔀':event?.icon||'🌼';
+    node.setAttribute('aria-label',info(key));
+    node.onclick=()=>{if(!rolling) message.textContent=info(key)};
+    map.append(node);
+  });
+}
+
+function render(){
+  const box=document.getElementById('players');
+  box.innerHTML='';
+  players.forEach((player,i)=>{
+    const rank=finishOrder.indexOf(i)+1;
+    const card=document.createElement('div');
+    card.className='player'+(i===current&&!player.finished?' active':'');
+    card.innerHTML=`<span class="face">${faces[i]}</span><span><span class="name">${names[i]}</span><br><span class="place">${player.finished?rank+'ばんめに ゴール！':player.index+' マス'}</span></span>`;
+    box.append(card);
+  });
+
+  map.querySelectorAll('.token').forEach(token=>token.remove());
+  players.forEach((player,i)=>{
+    const [px,py]=player.route[player.index];
+    const token=document.createElement('div');
+    token.className='token';
+    token.textContent=faces[i];
+    token.style.left=(px-21+(i%2?16:-16))+'px';
+    token.style.top=(py-21+(i>1?16:-16))+'px';
+    map.append(token);
+  });
+
+  document.getElementById('turn').textContent=players.length?`${faces[current]} ${names[current]}の ばん`:'じゅんびちゅう';
+}
+
+function center(){
+  const [px]=players[current].route[players[current].index];
+  const left=Math.max(0,Math.min(px-wrap.clientWidth/2,3060-wrap.clientWidth));
+  wrap.scrollTo({left,behavior:'smooth'});
+}
+
+function dots(number){
+  const order=[[4],[0,8],[0,4,8],[0,2,6,8],[0,2,4,6,8],[0,2,3,5,6,8]];
+  dice.querySelectorAll('.dot').forEach((dot,i)=>dot.classList.toggle('on',order[number-1].includes(i)));
+  dice.setAttribute('aria-label',`${number}の目`);
+}
+
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+function start(){
+  players=Array.from({length:count},()=>({route:pre,index:0,branch:false,finished:false,direction:1}));
+  current=0;
+  rolling=false;
+  steps=0;
+  pendingEvent=null;
+  finishOrder=[];
+  action='move';
+  dots(1);
+  dice.disabled=false;
+  advance.disabled=true;
+  advance.textContent='すすむ';
+  forkModal.classList.add('hidden');
+  finishModal.classList.add('hidden');
+  chanceModal.classList.add('hidden');
+  setupModal.classList.add('hidden');
+  message.textContent=`${faces[0]} ${names[0]}の ばん。サイコロをふって！`;
+  render();
+  center();
+}
+
+async function roll(){
+  if(rolling||!players.length) return;
+  rolling=true;
+  dice.disabled=true;
+  for(let i=0;i<10;i++){
+    dots(1+Math.floor(Math.random()*6));
+    await sleep(85);
+  }
+
+  steps=1+Math.floor(Math.random()*6);
+  action='move';
+  dots(steps);
+  message.textContent=`${steps} でた！「${steps}マス すすむ」を タップしてね`;
+  advance.textContent=`${steps}マス すすむ`;
+  advance.disabled=false;
+}
+
+function nextTurn(){
+  if(finishOrder.length===players.length) return;
+  do{
+    current=(current+1)%players.length;
+  }while(players[current].finished);
+
+  const player=players[current];
+  rolling=false;
+  steps=0;
+  pendingEvent=null;
+  action='move';
+  player.direction=1;
+  advance.disabled=true;
+  advance.textContent='すすむ';
+  dice.disabled=false;
+  message.textContent=`${faces[current]} ${names[current]}の ばん。サイコロをふって！`;
+  render();
+  center();
+}
+
+function finishPlayer(){
+  const player=players[current];
+  player.finished=true;
+  finishOrder.push(current);
+  render();
+  advance.disabled=true;
+
+  if(finishOrder.length===players.length){
+    document.getElementById('ranking').textContent=finishOrder.map((i,rank)=>`${rank+1}ばん ${faces[i]} ${names[i]}`).join('　');
+    finishModal.classList.remove('hidden');
+    rolling=false;
+    dice.disabled=true;
+  }else{
+    message.textContent=`${faces[current]} ${names[current]}が ${finishOrder.length}ばんめに ゴール！`;
+    setTimeout(nextTurn,850);
+  }
+}
+
+// allowEvent=false のときは、着地マスがイベントマスでも発火させず
+// 通常マスと同様にターン終了処理へ進む。
+// これにより「イベント効果による移動→着地マスが別イベントだった」場合の連鎖発火を防ぐ。
+function resolve(allowEvent=true){
+  const player=players[current];
+  const key=player.route[player.index].join(',');
+  if(key===goalKey){
+    finishPlayer();
+    return;
+  }
+
+  if(allowEvent){
+    const event=events.get(key);
+    if(event){
+      pendingEvent=event;
+      action='eventIntro';
+      message.textContent=`${event.icon} ${event.text} タップしてね`;
+      advance.textContent='イベントを すすめる';
+      advance.disabled=false;
+      return;
+    }
+  }
+
+  nextTurn();
+}
+
+// サイコロ移動。着地マスでは通常通りイベント判定を許可する(allowEvent=true)。
+async function travel(){
+  const player=players[current];
+  advance.disabled=true;
+
+  while(steps>0){
+    const maxIndex=player.route.length-1;
+    if(player.index>=maxIndex){
+      steps=0;
+      break;
+    }
+
+    player.index++;
+    steps--;
+    render();
+    center();
+    await sleep(600);
+
+    const key=player.route[player.index].join(',');
+    if(!player.branch&&key===forkKey){
+      forkModal.classList.remove('hidden');
+      message.textContent='🔀 どっちの みちに する？';
+      return;
+    }
+
+    if(key===goalKey){
+      steps=0;
+      break;
+    }
+  }
+
+  resolve(true);
+}
+
+// イベント効果による後退移動。着地マスが別のイベントマスでも発火させない(allowEvent=false)。
+async function moveBackward(player){
+  advance.disabled=true;
+  while(steps>0){
+    player.index=Math.max(0,player.index-1);
+    steps--;
+    render();
+    center();
+    await sleep(600);
+  }
+  player.direction=1;
+  resolve(false);
+}
+
+// イベント効果による前進移動。着地マスが別のイベントマスでも発火させない(allowEvent=false)。
+async function travelFromEvent(player){
+  advance.disabled=true;
+
+  while(steps>0){
+    const maxIndex=player.route.length-1;
+    if(player.index>=maxIndex){
+      steps=0;
+      break;
+    }
+
+    player.index++;
+    steps--;
+    render();
+    center();
+    await sleep(600);
+
+    const key=player.route[player.index].join(',');
+    if(!player.branch&&key===forkKey){
+      // 分岐に来た場合は選択させる必要があるため、ここだけは処理を継続する。
+      forkModal.classList.remove('hidden');
+      message.textContent='🔀 どっちの みちに する？';
+      return;
+    }
+
+    if(key===goalKey){
+      steps=0;
+      break;
+    }
+  }
+
+  resolve(false);
+}
+
+function findIndexOfKey(route,key){
+  return route.findIndex(p=>p.join(',')===key);
+}
+
+// ワープも着地マスの再イベント発火を禁止する(allowEvent=false)。
+async function warpTo(player,targetKey){
+  advance.disabled=true;
+  const idx=findIndexOfKey(player.route,targetKey);
+  if(idx===-1){resolve(false);return}
+  player.index=idx;
+  render();
+  center();
+  await sleep(500);
+  resolve(false);
+}
+
+function openChance(){
+  chanceModal.classList.remove('hidden');
+  message.textContent='🎁 好きな たまごを タップしてね';
+}
+
+function resolveChance(pick){
+  chanceModal.classList.add('hidden');
+  const outcomes=[
+    {icon:'🎉',text:'あたり！ 3マス すすむ！',move:3},
+    {icon:'🙂',text:'ふつう。1マス すすむ！',move:1},
+    {icon:'😅',text:'からぶり。1マス もどる！',move:-1}
+  ];
+  const shuffled=[...outcomes].sort(()=>Math.random()-0.5);
+  const outcome=shuffled[pick];
+  const player=players[current];
+
+  steps=Math.abs(outcome.move);
+  player.direction=Math.sign(outcome.move);
+  action=player.direction<0?'backward':'move';
+  message.textContent=`${outcome.icon} ${outcome.text} タップしてね`;
+  advance.textContent=`${steps}マス ${player.direction>0?'すすむ':'もどる'}`;
+  advance.disabled=false;
+}
+
+function advanceMove(){
+  if(!rolling) return;
+  const player=players[current];
+
+  if(action==='eventIntro'){
+    const event=pendingEvent;
+    pendingEvent=null;
+
+    if(event.type==='chance'){
+      action='move';
+      openChance();
+      return;
+    }
+
+    if(event.type==='reroll'){
+      message.textContent='🎲 つづけて サイコロを ふってね！';
+      advance.disabled=true;
+      rolling=false;
+      dice.disabled=false;
+      return;
+    }
+
+    if(event.type==='warp'){
+      warpTo(player,event.target);
+      return;
+    }
+
+    steps=Math.abs(event.move);
+    player.direction=Math.sign(event.move);
+    action=player.direction<0?'backward':'forward-from-event';
+    advance.textContent=`${steps}マス ${player.direction>0?'すすむ':'もどる'}`;
+    message.textContent=`タップすると ${steps}マス ゆっくり ${player.direction>0?'すすむ':'もどる'}よ`;
+    advance.disabled=false;
+    return;
+  }
+
+  if(action==='backward'){
+    moveBackward(player);
+    return;
+  }
+
+  if(action==='forward-from-event'){
+    travelFromEvent(player);
+    return;
+  }
+
+  player.direction=1;
+  travel();
+}
+
+function chooseBranch(kind){
+  const player=players[current];
+  player.route=routes[kind];
+  player.branch=true;
+  player.index=0;
+  forkModal.classList.add('hidden');
+  message.textContent=kind==='rainbow'?'🌈 にじの ちかみちへ！':'🌳 もりの みちへ！';
+
+  if(steps<=0){
+    resolve(true);
+    return;
+  }
+
+  travel();
+}
+
+document.getElementById('choices').onclick=event=>{
+  const button=event.target.closest('button');
+  if(!button) return;
+  count=Number(button.dataset.count);
+  document.querySelectorAll('#choices button').forEach(choice=>choice.classList.toggle('selected',choice===button));
+};
+
+document.getElementById('begin').onclick=start;
+document.getElementById('rainbow').onclick=()=>chooseBranch('rainbow');
+document.getElementById('forest').onclick=()=>chooseBranch('forest');
+document.getElementById('chance').onclick=event=>{
+  const button=event.target.closest('button');
+  if(!button) return;
+  resolveChance(Number(button.dataset.pick));
+};
+
+document.getElementById('again').onclick=()=>{
+  finishModal.classList.add('hidden');
+  forkModal.classList.add('hidden');
+  chanceModal.classList.add('hidden');
+  setupModal.classList.remove('hidden');
+  players=[];
+  current=0;
+  rolling=false;
+  steps=0;
+  pendingEvent=null;
+  finishOrder=[];
+  action='move';
+  dice.disabled=false;
+  advance.disabled=true;
+  advance.textContent='すすむ';
+  message.textContent='人数をえらんで、スタート！';
+  document.getElementById('turn').textContent='じゅんびちゅう';
+  document.getElementById('players').innerHTML='';
+  map.querySelectorAll('.token').forEach(token=>token.remove());
+  dots(1);
+};
+
+dice.onclick=roll;
+advance.onclick=advanceMove;
+
+build();
+dots(1);
+</script>
+</body>
+</html>
