@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>きらきら星 太鼓ゲーム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Hiragino Kaku Gothic Pro', sans-serif;
+      overflow: hidden;
+    }
+    h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    #gameCanvas {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    #score {
+      color: white;
+      font-size: 28px;
+      margin-top: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    #startBtn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+    #startBtn:hover {
+      transform: scale(1.1);
+    }
+    #startBtn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+  <h1>✨ きらきら星 太鼓 ✨</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="score">⭐ 0 ⭐</div>
+  <button id="startBtn">▶️ はじめる</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const startBtn = document.getElementById('startBtn');
+
+    // Web Audio API
+    let audioContext;
+    let isMusicPlaying = false;
+    let musicStartTime = 0;
+
+    // きらきら星のメロディ（周波数 Hz、秒）
+    // C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392.00, A4=440.00, B4=493.88, C5=523.25
+    const melody = [
+      {note: 'C4', freq: 261.63, start: 0.0, duration: 0.5},
+      {note: 'C4', freq: 261.63, start: 0.5, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 1.0, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 1.5, duration: 0.5},
+      {note: 'A4', freq: 440.00, start: 2.0, duration: 0.5},
+      {note: 'A4', freq: 440.00, start: 2.5, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 3.0, duration: 1.0},
+      
+      {note: 'F4', freq: 349.23, start: 4.0, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 4.5, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 5.0, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 5.5, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 6.0, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 6.5, duration: 0.5},
+      {note: 'C4', freq: 261.63, start: 7.0, duration: 1.0},
+      
+      {note: 'G4', freq: 392.00, start: 8.0, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 8.5, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 9.0, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 9.5, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 10.0, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 10.5, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 11.0, duration: 1.0},
+      
+      {note: 'G4', freq: 392.00, start: 12.0, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 12.5, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 13.0, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 13.5, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 14.0, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 14.5, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 15.0, duration: 1.0},
+      
+      {note: 'C4', freq: 261.63, start: 16.0, duration: 0.5},
+      {note: 'C4', freq: 261.63, start: 16.5, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 17.0, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 17.5, duration: 0.5},
+      {note: 'A4', freq: 440.00, start: 18.0, duration: 0.5},
+      {note: 'A4', freq: 440.00, start: 18.5, duration: 0.5},
+      {note: 'G4', freq: 392.00, start: 19.0, duration: 1.0},
+      
+      {note: 'F4', freq: 349.23, start: 20.0, duration: 0.5},
+      {note: 'F4', freq: 349.23, start: 20.5, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 21.0, duration: 0.5},
+      {note: 'E4', freq: 329.63, start: 21.5, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 22.0, duration: 0.5},
+      {note: 'D4', freq: 293.66, start: 22.5, duration: 0.5},
+      {note: 'C4', freq: 261.63, start: 23.0, duration: 1.0},
+    ];
+
+    // 音符を鳴らす関数
+    function playNote(freq, startTime, duration) {
+      if (!audioContext) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.value = freq;
+      
+      gainNode.gain.setValueAtTime(0.3, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    }
+
+    // 太鼓の音を鳴らす
+    function playTaikoSound() {
+      if (!audioContext) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    }
+
+    // 音楽を再生
+    function playMusic() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      musicStartTime = audioContext.currentTime + 0.1;
+      
+      melody.forEach(item => {
+        playNote(item.freq, musicStartTime + item.start, item.duration);
+      });
+      
+      isMusicPlaying = true;
+    }
+
+    // ゲームの状態
+    let score = 0;
+    let isPlaying = false;
+    let notes = [];
+    let noteSpeed = 2;
+    let lastSpawnTime = 0;
+    let noteIndex = 0;
+
+    // 太鼓の位置
+    const taikoX = canvas.width / 2;
+    const taikoY = canvas.height - 80;
+    const taikoRadius = 60;
+
+    // 音符のレーン（メロディに合わせて配置）
+    const lanes = [
+      canvas.width * 0.2,
+      canvas.width * 0.4,
+      canvas.width * 0.6,
+      canvas.width * 0.8
+    ];
+
+    // ノートの色
+    const noteColors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+
+    // 音符の画像（簡易版）
+    function drawNote(x, y, color) {
+      ctx.beginPath();
+      ctx.arc(x, y, 25, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // 音符の棒
+      ctx.beginPath();
+      ctx.moveTo(x + 15, y - 15);
+      ctx.lineTo(x + 35, y - 45);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      
+      // 音符の旗
+      ctx.beginPath();
+      ctx.moveTo(x + 35, y - 45);
+      ctx.quadraticCurveTo(x + 50, y - 35, x + 35, y - 25);
+      ctx.fillStyle = '#333';
+      ctx.fill();
+    }
+
+    // 太鼓の描画
+    function drawTaiko() {
+      // 太鼓の本体
+      ctx.beginPath();
+      ctx.ellipse(taikoX, taikoY, taikoRadius, taikoRadius * 0.6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#8B4513';
+      ctx.fill();
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      
+      // 太鼓の面
+      ctx.beginPath();
+      ctx.ellipse(taikoX, taikoY, taikoRadius * 0.9, taikoRadius * 0.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#F5DEB3';
+      ctx.fill();
+      
+      // 太鼓のリム
+      ctx.beginPath();
+      ctx.ellipse(taikoX, taikoY, taikoRadius, taikoRadius * 0.6, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = '#D2691E';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+      
+      // 装飾
+      ctx.beginPath();
+      ctx.arc(taikoX - 30, taikoY - 10, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(taikoX + 30, taikoY - 10, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+    }
+
+    // ノート生成（メロディに合わせて）
+    function spawnNote() {
+      if (noteIndex >= melody.length) return;
+      
+      const item = melody[noteIndex];
+      const laneIndex = noteIndex % 4;
+      const x = lanes[laneIndex];
+      const color = noteColors[laneIndex];
+      
+      notes.push({ 
+        x, 
+        y: -30, 
+        color, 
+        active: true,
+        targetTime: item.start
+      });
+      
+      noteIndex++;
+    }
+
+    // ノートの更新
+    function updateNotes(deltaTime) {
+      const now = Date.now();
+      
+      // メロディのタイミングでノートを生成
+      if (isMusicPlaying && audioContext) {
+        const elapsedTime = audioContext.currentTime - musicStartTime;
+        
+        if (noteIndex < melody.length) {
+          const nextNote = melody[noteIndex];
+          if (elapsedTime >= nextNote.start - 2.0) { // 2 秒前に生成
+            spawnNote();
+          }
+        }
+      } else if (now - lastSpawnTime > spawnInterval) {
+        // 音楽がない場合のフォールバック
+        spawnNote();
+        lastSpawnTime = now;
+        
+        if (spawnInterval > 800) {
+          spawnInterval -= 50;
+        }
+        if (noteSpeed < 4) {
+          noteSpeed += 0.1;
+        }
+      }
+
+      notes.forEach(note => {
+        if (note.active) {
+          note.y += noteSpeed;
+          
+          if (note.y > canvas.height + 30) {
+            note.active = false;
+          }
+        }
+      });
+
+      notes = notes.filter(note => note.active);
+    }
+
+    // ノートの描画
+    function drawNotes() {
+      notes.forEach(note => {
+        drawNote(note.x, note.y, note.color);
+      });
+    }
+
+    // 判定チェック
+    function checkHit(x, y) {
+      let hit = false;
+      notes.forEach(note => {
+        if (note.active) {
+          const dx = x - note.x;
+          const dy = y - note.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 80 && note.y > taikoY - 100 && note.y < taikoY + 50) {
+            note.active = false;
+            score++;
+            scoreDisplay.textContent = `⭐ ${score} ⭐`;
+            hit = true;
+            
+            createHitEffect(note.x, note.y);
+            playTaikoSound();
+          }
+        }
+      });
+    }
+
+    // ヒットエフェクト
+    let hitEffects = [];
+    function createHitEffect(x, y) {
+      for (let i = 0; i < 8; i++) {
+        hitEffects.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 10,
+          vy: (Math.random() - 0.5) * 10,
+          life: 1.0
+        });
+      }
+    }
+
+    function updateAndDrawHitEffects() {
+      hitEffects = hitEffects.filter(effect => {
+        effect.x += effect.vx;
+        effect.y += effect.vy;
+        effect.vy += 0.5;
+        effect.life -= 0.05;
+        
+        if (effect.life > 0) {
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
+          ctx.fill();
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // ゲームループ
+    let taikoY_temp = taikoY;
+    let lastTime = 0;
+
+    function gameLoop(timestamp) {
+      if (!isPlaying) return;
+
+      const deltaTime = timestamp - lastTime;
+      lastTime = timestamp;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      updateNotes(deltaTime);
+      
+      drawTaiko();
+      drawNotes();
+      updateAndDrawHitEffects();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // イベントリスナー
+    canvas.addEventListener('click', (e) => {
+      if (!isPlaying) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      checkHit(x, y);
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (!isPlaying) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      checkHit(x, y);
+    });
+
+    startBtn.addEventListener('click', () => {
+      if (!isPlaying) {
+        isPlaying = true;
+        startBtn.textContent = '⏸️ やめる';
+        
+        // AudioContext の初期化
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // 音楽を再生
+        playMusic();
+        
+        lastTime = performance.now();
+        lastSpawnTime = performance.now();
+        requestAnimationFrame(gameLoop);
+      } else {
+        isPlaying = false;
+        isMusicPlaying = false;
+        startBtn.textContent = '▶️ はじめる';
+        notes = [];
+        score = 0;
+        scoreDisplay.textContent = '⭐ 0 ⭐';
+        spawnInterval = 1500;
+        noteSpeed = 2;
+        noteIndex = 0;
+        
+        if (audioContext) {
+          audioContext.close();
+          audioContext = null;
+        }
+      }
+    });
+
+    // 初期描画
+    drawTaiko();
+  </script>
+</body>
+</html>
