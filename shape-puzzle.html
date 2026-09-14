@@ -55,8 +55,15 @@
     <footer><button class="reset" id="resetButton" type="button">↻ もういちど</button></footer>
   </main>
   <div class="message" id="message" role="dialog" aria-modal="true" aria-label="クリア"><div class="card"><p class="yay">できた！</p><div class="stars-big">★★★</div><button class="again" id="againButton" type="button">もういちど</button></div></div>
-  <script src="puzzle-generator.js"></script>
+  <script src="./puzzle-generator.js"></script>
   <script>
+  console.log('生成器読み込み確認');
+  console.log(typeof generatePuzzle);
+  console.log(typeof validatePuzzle);
+
+  const pieces = generatePuzzle();
+  console.log(pieces);
+  console.log(validatePuzzle(pieces));
     const pieces = generatePuzzle();
 
     console.log(pieces);
