@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>かたちを はめよう！</title>
+  <style>
+    :root { --ink:#26354a; --paper:#f8f5ed; --grid:#dbe4ee; --cell:clamp(54px,10.2vw,102px); --board:calc(var(--cell) * 4); }
+    * { box-sizing:border-box; }
+    html,body { height:100%; }
+    body { margin:0; min-width:320px; overflow:hidden; color:var(--ink); background:radial-gradient(circle at 14% 15%,#fff 0 6%,transparent 6.5%),radial-gradient(circle at 89% 80%,#fff2c2 0 8%,transparent 8.5%),var(--paper); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; touch-action:none; user-select:none; -webkit-user-select:none; }
+    button { font:inherit; }
+    .app { min-height:100%; padding:clamp(14px,2.4vw,30px); display:grid; grid-template-rows:auto 1fr auto; gap:clamp(10px,1.8vw,20px); }
+    header { min-height:54px; display:flex; align-items:center; justify-content:center; position:relative; }
+    h1 { margin:0; color:#344865; font-size:clamp(27px,4vw,48px); letter-spacing:.04em; }
+    .progress { position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; gap:7px; }
+    .star { width:clamp(25px,3vw,37px); aspect-ratio:1; color:#d4dce7; transition:color .25s,transform .25s; }
+    .star.on { color:#ffbd2e; transform:scale(1.12) rotate(8deg); }
+    .game { min-height:0; display:grid; grid-template-columns:minmax(250px,1fr) auto; align-items:center; justify-content:center; gap:clamp(22px,7vw,94px); }
+    .tray { width:min(39vw,390px); min-width:250px; min-height:min(62vh,510px); padding:clamp(12px,2vw,24px); display:flex; flex-direction:column; justify-content:center; gap:clamp(14px,2.2vh,28px); border:4px dashed #cbd8e5; border-radius:30px; background:rgba(255,255,255,.5); }
+    .piece-slot { min-height:calc(var(--cell) * 1.15); display:flex; align-items:center; justify-content:center; }
+    .piece { position:relative; display:grid; grid-template-columns:repeat(var(--w),var(--cell)); grid-template-rows:repeat(var(--h),var(--cell)); cursor:grab; touch-action:none; filter:drop-shadow(0 7px 0 rgba(38,53,74,.12)) drop-shadow(0 12px 12px rgba(38,53,74,.14)); transition:filter .16s,transform .16s; }
+    .piece:hover { transform:scale(1.025); }
+    .piece:active { cursor:grabbing; }
+    .piece.dragging { position:fixed; z-index:20; margin:0; pointer-events:none; cursor:grabbing; transform:scale(1.07); filter:drop-shadow(0 12px 0 rgba(38,53,74,.13)) drop-shadow(0 20px 20px rgba(38,53,74,.2)); transition:none; }
+    .piece.placed { cursor:default; pointer-events:none; filter:none; }
+    .piece-cell { grid-column:calc(var(--x) + 1); grid-row:calc(var(--y) + 1); background:var(--color); border:4px solid rgba(38,53,74,.62); border-radius:13px; box-shadow:inset 0 5px 0 rgba(255,255,255,.27),inset 0 -4px 0 rgba(0,0,0,.09); }
+    .board-wrap { position:relative; }
+    .board { position:relative; width:var(--board); height:var(--board); overflow:hidden; border:7px solid #344865; border-radius:24px; background-color:#fff; background-image:linear-gradient(to right,var(--grid) 2px,transparent 2px),linear-gradient(to bottom,var(--grid) 2px,transparent 2px); background-size:var(--cell) var(--cell); box-shadow:0 10px 0 #c9d3df,0 16px 22px rgba(38,53,74,.16); }
+    .target { position:absolute; display:grid; grid-template-columns:repeat(var(--w),var(--cell)); grid-template-rows:repeat(var(--h),var(--cell)); left:calc(var(--target-x) * var(--cell)); top:calc(var(--target-y) * var(--cell)); opacity:.28; pointer-events:none; transition:opacity .18s,filter .18s; }
+    .target.near { opacity:.57; filter:drop-shadow(0 0 8px var(--color)); }
+    .target.done { opacity:0; }
+    .target-cell { grid-column:calc(var(--x) + 1); grid-row:calc(var(--y) + 1); background:var(--color); border:4px dashed rgba(38,53,74,.55); border-radius:13px; }
+    .placed-layer { position:absolute; inset:0; pointer-events:none; }
+    .placed-layer .piece { position:absolute; left:calc(var(--target-x) * var(--cell)); top:calc(var(--target-y) * var(--cell)); }
+    footer { display:flex; justify-content:center; }
+    .reset,.again { min-height:60px; padding:10px 28px; border:0; border-radius:999px; font-weight:800; cursor:pointer; }
+    .reset { min-width:180px; background:#fff; color:#344865; font-size:clamp(19px,2.4vw,28px); box-shadow:0 5px 0 #c9d3df,0 9px 15px rgba(38,53,74,.13); }
+    .message { position:fixed; z-index:40; inset:0; display:grid; place-items:center; padding:24px; background:rgba(248,245,237,.78); opacity:0; visibility:hidden; transition:opacity .25s,visibility .25s; }
+    .message.show { opacity:1; visibility:visible; }
+    .card { width:min(560px,90vw); padding:40px 28px 30px; border-radius:34px; text-align:center; background:#fff; box-shadow:0 16px 38px rgba(38,53,74,.24); transform:scale(.88); transition:transform .28s cubic-bezier(.2,.9,.3,1.3); }
+    .message.show .card { transform:scale(1); }
+    .yay { margin:0; font-size:clamp(44px,8vw,76px); }
+    .stars-big { margin:10px 0 22px; color:#ffbd2e; font-size:clamp(40px,7vw,70px); letter-spacing:.12em; }
+    .again { min-height:66px; background:#4d96ff; color:#fff; font-size:25px; box-shadow:0 5px 0 #2f70c7; }
+    .confetti { position:fixed; z-index:35; width:13px; height:19px; border-radius:4px; pointer-events:none; animation:fall 1.7s ease-in forwards; }
+    @keyframes fall { from { transform:translate(var(--x),-28px) rotate(0); opacity:1; } to { transform:translate(calc(var(--x) + var(--drift)),108vh) rotate(680deg); opacity:0; } }
+    @media (max-width:700px) and (orientation:portrait) { body { overflow:auto; } .app { min-height:100vh; } .game { grid-template-columns:1fr; gap:18px; } .tray { width:min(92vw,500px); min-height:unset; flex-direction:row; margin:auto; } .piece-slot { min-width:0; transform:scale(.62); margin:calc(var(--cell) * -.2); } .board-wrap { margin:auto; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header><h1>かたちを はめよう！</h1><div class="progress" aria-label="進みぐあい"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div></header>
+    <section class="game" aria-label="パズル"><div class="tray" id="tray" aria-label="ピース置き場"></div><div class="board-wrap"><div class="board" id="board" aria-label="パズル盤面"><div class="placed-layer" id="placedLayer"></div></div></div></section>
+    <footer><button class="reset" id="resetButton" type="button">↻ もういちど</button></footer>
+  </main>
+  <div class="message" id="message" role="dialog" aria-modal="true" aria-label="クリア"><div class="card"><p class="yay">できた！</p><div class="stars-big">★★★</div><button class="again" id="againButton" type="button">もういちど</button></div></div>
+  <script src="puzzle-generator.js"></script>
+  <script>
+    const pieces = generatePuzzle();
+
+    console.log(pieces);
+    console.log(validatePuzzle(pieces));
+    const tray = document.getElementById('tray');
+    const board = document.getElementById('board');
+    const placedLayer = document.getElementById('placedLayer');
+    const stars = [...document.querySelectorAll('.star')];
+    const message = document.getElementById('message');
+    let active = null, placedCount = 0;
+
+    function buildCells(el, piece, cls) {
+      piece.cells.forEach(([x,y]) => { const cell=document.createElement('span'); cell.className=cls; cell.style.setProperty('--x',x); cell.style.setProperty('--y',y); el.appendChild(cell); });
+    }
+    function makePiece(piece) {
+      const el=document.createElement('div');
+      el.className='piece'; el.dataset.id=piece.id; el.setAttribute('role','img'); el.setAttribute('aria-label',`${piece.name}のピース`);
+      el.style.setProperty('--w',piece.w); el.style.setProperty('--h',piece.h); el.style.setProperty('--color',piece.color);
+      buildCells(el,piece,'piece-cell'); el.addEventListener('pointerdown',startDrag); return el;
+    }
+    function makeTarget(piece) {
+      const el=document.createElement('div'); el.className='target'; el.dataset.id=piece.id;
+      el.style.setProperty('--w',piece.w); el.style.setProperty('--h',piece.h); el.style.setProperty('--color',piece.color); el.style.setProperty('--target-x',piece.target.x); el.style.setProperty('--target-y',piece.target.y);
+      buildCells(el,piece,'target-cell'); board.insertBefore(el,placedLayer);
+    }
+    function render() {
+      pieces.forEach(piece => { const slot=document.createElement('div'); slot.className='piece-slot'; slot.appendChild(makePiece(piece)); tray.appendChild(slot); makeTarget(piece); });
+    }
+    function getPiece(id) { return pieces.find(p => p.id === id); }
+    function pointerPosition(event) { return { x:event.clientX, y:event.clientY }; }
+    function startDrag(event) {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const el=event.currentTarget;
+      if (el.classList.contains('placed')) return;
+      event.preventDefault();
+      const point=pointerPosition(event), rect=el.getBoundingClientRect();
+      active={ el, piece:getPiece(el.dataset.id), home:el.parentElement, offsetX:point.x-rect.left, offsetY:point.y-rect.top, pointerId:event.pointerId };
+      // 親要素のレイアウトから外す前に、必ずポインタを捕捉する。
+      // Windowsのマウスでは、これによりボタンを押したまま要素外へ移動しても追跡できる。
+      try { el.setPointerCapture(event.pointerId); } catch (_) {}
+      el.classList.add('dragging');
+      document.body.appendChild(el);
+      movePiece(event);
+      window.addEventListener('pointermove', movePiece);
+      window.addEventListener('pointerup', endDrag, { once:true });
+      window.addEventListener('pointercancel', cancelDrag, { once:true });
+    }
+    function movePiece(event) {
+      if (!active || event.pointerId !== active.pointerId) return;
+      const point=pointerPosition(event), {el,offsetX,offsetY,piece}=active;
+      el.style.left=`${point.x-offsetX}px`; el.style.top=`${point.y-offsetY-18}px`;
+      const target=document.querySelector(`.target[data-id="${piece.id}"]`);
+      const er=el.getBoundingClientRect(), tr=target.getBoundingClientRect(), br=board.getBoundingClientRect();
+      const distance=Math.hypot((er.left+er.width/2)-(tr.left+tr.width/2),(er.top+er.height/2)-(tr.top+tr.height/2));
+      target.classList.toggle('near',distance < Math.min(br.width*.25,125));
+    }
+    function cleanDragListeners() { window.removeEventListener('pointermove',movePiece); }
+    function endDrag(event) {
+      if (!active || event.pointerId !== active.pointerId) return;
+      const {el,piece,home}=active, target=document.querySelector(`.target[data-id="${piece.id}"]`);
+      const er=el.getBoundingClientRect(), tr=target.getBoundingClientRect();
+      const distance=Math.hypot((er.left+er.width/2)-(tr.left+tr.width/2),(er.top+er.height/2)-(tr.top+tr.height/2));
+      cleanDragListeners(); el.classList.remove('dragging'); el.style.left=''; el.style.top=''; target.classList.remove('near');
+      if (distance < Math.min(board.getBoundingClientRect().width*.25,125)) placePiece(el,piece,target); else home.appendChild(el);
+      active=null;
+    }
+    function cancelDrag(event) {
+      if (!active || (event && event.pointerId !== active.pointerId)) return;
+      const {el,home,piece}=active;
+      cleanDragListeners(); el.classList.remove('dragging'); el.style.left=''; el.style.top=''; document.querySelector(`.target[data-id="${piece.id}"]`).classList.remove('near'); home.appendChild(el); active=null;
+    }
+    function placePiece(el,piece,target) {
+      el.classList.add('placed'); el.style.setProperty('--target-x',piece.target.x); el.style.setProperty('--target-y',piece.target.y); placedLayer.appendChild(el); target.classList.add('done');
+      stars[placedCount].classList.add('on'); placedCount += 1;
+      if (placedCount === pieces.length) setTimeout(complete,350);
+    }
+    function complete() { makeConfetti(); message.classList.add('show'); }
+    function makeConfetti() {
+      const colors=['#ff6b6b','#4d96ff','#ffd93d','#66d19e','#b487ff'];
+      for(let i=0;i<60;i+=1) { const item=document.createElement('div'); item.className='confetti'; item.style.left=`${Math.random()*100}vw`; item.style.background=colors[i%colors.length]; item.style.setProperty('--x',`${Math.random()*20-10}px`); item.style.setProperty('--drift',`${Math.random()*160-80}px`); item.style.animationDelay=`${Math.random()*.35}s`; document.body.appendChild(item); setTimeout(()=>item.remove(),2300); }
+    }
+    function reset() {
+      cancelDrag(); message.classList.remove('show'); placedCount=0; stars.forEach(s=>s.classList.remove('on')); placedLayer.innerHTML=''; tray.innerHTML=''; document.querySelectorAll('.target').forEach(t=>t.remove()); render();
+    }
+    document.getElementById('resetButton').addEventListener('click',reset);
+    document.getElementById('againButton').addEventListener('click',reset);
+    render();
+  </script>
+</body>
+</html>
