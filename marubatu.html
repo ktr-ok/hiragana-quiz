@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>まるばつゲーム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f9f9f9;
+            color: #333;
+            margin-top: 40px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 1.2rem;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+        #status {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            height: 30px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 8px;
+            justify-content: center;
+            margin: 0 auto 30px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+        .cell:hover {
+            background-color: #f0f0f0;
+        }
+        .cell.taken {
+            cursor: default;
+        }
+        .text-o { color: #e74c3c; }
+        .text-x { color: #3498db; }
+        button {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>まるばつゲーム</h1>
+    
+    <div class="controls">
+        <label><input type="radio" name="mode" value="1p" checked> 1人プレイ (vs CPU)</label>
+        <label><input type="radio" name="mode" value="2p"> 2人プレイ</label>
+    </div>
+
+    <div id="status">〇の番です</div>
+
+    <div id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+
+    <button onclick="resetGame()">リセット</button>
+
+    <script>
+        const cells = document.querySelectorAll('.cell');
+        const statusText = document.getElementById('status');
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        
+        let board = Array(9).fill(null);
+        let xIsNext = false; // false = 〇, true = ×
+        let isGameActive = true;
+        let isCpuThinking = false;
+
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        modeRadios.forEach(radio => radio.addEventListener('change', resetGame));
+
+        function handleCellClick(e) {
+            const index = e.target.getAttribute('data-index');
+            
+            // 既に埋まっている、ゲーム終了、またはCPU思考中は無効
+            if (board[index] || !isGameActive || isCpuThinking) return;
+
+            makeMove(index, xIsNext ? '×' : '〇');
+
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            // 1Pモードでゲームが続いており、次の番がCPU(×)の場合
+            if (mode === '1p' && isGameActive && xIsNext) {
+                isCpuThinking = true;
+                statusText.textContent = 'CPUが考え中...';
+                setTimeout(cpuMove, 600); // 少し待機して人間味を出す
+            }
+        }
+
+        function makeMove(index, player) {
+            board[index] = player;
+            cells[index].textContent = player;
+            cells[index].classList.add('taken');
+            cells[index].classList.add(player === '〇' ? 'text-o' : 'text-x');
+
+            if (checkWin(player)) {
+                statusText.textContent = `${player} の勝ち！`;
+                isGameActive = false;
+                return;
+            }
+
+            if (!board.includes(null)) {
+                statusText.textContent = '引き分けです';
+                isGameActive = false;
+                return;
+            }
+
+            xIsNext = !xIsNext;
+            statusText.textContent = `${xIsNext ? '×' : '〇'}の番です`;
+        }
+
+        function cpuMove() {
+            if (!isGameActive) return;
+
+            // 空いているマスを全て取得
+            const availableSpots = board.map((val, idx) => val === null ? idx : null).filter(val => val !== null);
+            
+            // 最弱CPU: 完全にランダムな位置を選ぶ
+            if (availableSpots.length > 0) {
+                const randomIndex = Math.floor(Math.random() * availableSpots.length);
+                const move = availableSpots[randomIndex];
+                makeMove(move, '×');
+            }
+            isCpuThinking = false;
+        }
+
+        function checkWin(player) {
+            return winningCombinations.some(combination => {
+                return combination.every(index => board[index] === player);
+            });
+        }
+
+        function resetGame() {
+            board = Array(9).fill(null);
+            xIsNext = false;
+            isGameActive = true;
+            isCpuThinking = false;
+            statusText.textContent = '〇の番です';
+            
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('taken', 'text-o', 'text-x');
+            });
+        }
+    </script>
+</body>
+</html>
