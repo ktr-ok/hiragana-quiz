@@ -57,14 +57,13 @@
   <div class="message" id="message" role="dialog" aria-modal="true" aria-label="クリア"><div class="card"><p class="yay">できた！</p><div class="stars-big">★★★</div><button class="again" id="againButton" type="button">もういちど</button></div></div>
   <script src="./puzzle-generator.js"></script>
   <script>
-  console.log('生成器読み込み確認');
-  console.log(typeof generatePuzzle);
-  console.log(typeof validatePuzzle);
+    console.log('生成器読み込み確認');
+    console.log(typeof generatePuzzle);
+    console.log(typeof validatePuzzle);
 
-    const pieces = generatePuzzle();
-
-    console.log(pieces);
-    console.log(validatePuzzle(pieces));
+    let pieces = generatePuzzle();
+    console.log('最初の問題:', pieces);
+    console.log('検証結果:', validatePuzzle(pieces));
     const tray = document.getElementById('tray');
     const board = document.getElementById('board');
     const placedLayer = document.getElementById('placedLayer');
@@ -143,7 +142,27 @@
       for(let i=0;i<60;i+=1) { const item=document.createElement('div'); item.className='confetti'; item.style.left=`${Math.random()*100}vw`; item.style.background=colors[i%colors.length]; item.style.setProperty('--x',`${Math.random()*20-10}px`); item.style.setProperty('--drift',`${Math.random()*160-80}px`); item.style.animationDelay=`${Math.random()*.35}s`; document.body.appendChild(item); setTimeout(()=>item.remove(),2300); }
     }
     function reset() {
-      cancelDrag(); message.classList.remove('show'); placedCount=0; stars.forEach(s=>s.classList.remove('on')); placedLayer.innerHTML=''; tray.innerHTML=''; document.querySelectorAll('.target').forEach(t=>t.remove()); render();
+      cancelDrag();
+    
+      message.classList.remove('show');
+      placedCount = 0;
+    
+      stars.forEach(star => star.classList.remove('on'));
+    
+      // 現在のピースと、盤面上の同色ヒントを消す
+      placedLayer.innerHTML = '';
+      tray.innerHTML = '';
+      document.querySelectorAll('.target').forEach(target => target.remove());
+    
+      // 新しい問題を自動生成する
+      pieces = generatePuzzle();
+    
+      // 生成された問題が正しいか、開発者ツールのConsoleで確認できる
+      console.log('新しい問題:', pieces);
+      console.log('検証結果:', validatePuzzle(pieces));
+    
+      // 新しいピースとヒントを描画する
+      render();
     }
     document.getElementById('resetButton').addEventListener('click',reset);
     document.getElementById('againButton').addEventListener('click',reset);
