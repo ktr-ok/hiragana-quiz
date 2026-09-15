@@ -13,261 +13,47 @@
       --cell: clamp(54px, 10.2vw, 102px);
       --board: calc(var(--cell) * 4);
     }
-
     * { box-sizing: border-box; }
     html, body { height: 100%; }
-
     body {
-      margin: 0;
-      min-width: 320px;
-      overflow: hidden;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 14% 15%, #ffffff 0 6%, transparent 6.5%),
-        radial-gradient(circle at 89% 80%, #fff2c2 0 8%, transparent 8.5%),
-        var(--paper);
+      margin: 0; min-width: 320px; overflow: hidden; color: var(--ink);
+      background: radial-gradient(circle at 14% 15%, #fff 0 6%, transparent 6.5%), radial-gradient(circle at 89% 80%, #fff2c2 0 8%, transparent 8.5%), var(--paper);
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
+      touch-action: none; user-select: none; -webkit-user-select: none;
     }
-
     button { font: inherit; }
-
-    .app {
-      min-height: 100%;
-      padding: clamp(14px, 2.4vw, 30px);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: clamp(10px, 1.8vw, 20px);
-    }
-
-    header {
-      min-height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    h1 {
-      margin: 0;
-      color: #344865;
-      font-size: clamp(27px, 4vw, 48px);
-      letter-spacing: .04em;
-    }
-
-    .progress {
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      gap: 7px;
-    }
-
-    .star {
-      width: clamp(25px, 3vw, 37px);
-      aspect-ratio: 1;
-      color: #d4dce7;
-      transition: color .25s ease, transform .25s ease;
-    }
-
-    .star.on {
-      color: #ffbd2e;
-      transform: scale(1.12) rotate(8deg);
-    }
-
-    .game {
-      min-height: 0;
-      display: grid;
-      grid-template-columns: minmax(250px, 1fr) auto;
-      align-items: center;
-      justify-content: center;
-      gap: clamp(22px, 7vw, 94px);
-    }
-
-    .tray {
-      width: min(39vw, 390px);
-      min-width: 250px;
-      min-height: min(62vh, 510px);
-      padding: clamp(12px, 2vw, 24px);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: clamp(14px, 2.2vh, 28px);
-      border: 4px dashed #cbd8e5;
-      border-radius: 30px;
-      background: rgba(255,255,255,.5);
-    }
-
-    .piece-slot {
-      min-height: calc(var(--cell) * 1.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .piece {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(var(--w), var(--cell));
-      grid-template-rows: repeat(var(--h), var(--cell));
-      cursor: grab;
-      touch-action: none;
-      transform-origin: center;
-      filter: drop-shadow(0 7px 0 rgba(38,53,74,.12)) drop-shadow(0 12px 12px rgba(38,53,74,.14));
-      transition: filter .16s ease, transform .16s ease;
-    }
-
+    .app { min-height: 100%; padding: clamp(14px, 2.4vw, 30px); display: grid; grid-template-rows: auto 1fr auto; gap: clamp(10px, 1.8vw, 20px); }
+    header { min-height: 54px; display: flex; align-items: center; justify-content: center; position: relative; }
+    h1 { margin: 0; color: #344865; font-size: clamp(27px, 4vw, 48px); letter-spacing: .04em; }
+    .progress { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 7px; }
+    .star { width: clamp(25px, 3vw, 37px); aspect-ratio: 1; color: #d4dce7; transition: color .25s ease, transform .25s ease; }
+    .star.on { color: #ffbd2e; transform: scale(1.12) rotate(8deg); }
+    .game { min-height: 0; display: grid; grid-template-columns: minmax(250px, 1fr) auto; align-items: center; justify-content: center; gap: clamp(22px, 7vw, 94px); }
+    .tray { width: min(39vw, 390px); min-width: 250px; min-height: min(62vh, 510px); padding: clamp(12px, 2vw, 24px); display: flex; flex-direction: column; justify-content: center; gap: clamp(14px, 2.2vh, 28px); border: 4px dashed #cbd8e5; border-radius: 30px; background: rgba(255,255,255,.5); }
+    .piece-slot { min-height: calc(var(--cell) * 1.15); display: flex; align-items: center; justify-content: center; }
+    .piece { position: relative; display: grid; grid-template-columns: repeat(var(--w), var(--cell)); grid-template-rows: repeat(var(--h), var(--cell)); cursor: grab; touch-action: none; transform-origin: center; filter: drop-shadow(0 7px 0 rgba(38,53,74,.12)) drop-shadow(0 12px 12px rgba(38,53,74,.14)); transition: filter .16s ease, transform .16s ease; }
     .piece:hover { transform: scale(1.025); }
     .piece:active { cursor: grabbing; }
-
-    .piece.dragging {
-      position: fixed;
-      z-index: 20;
-      margin: 0;
-      pointer-events: none;
-      cursor: grabbing;
-      transform: scale(1.07);
-      filter: drop-shadow(0 12px 0 rgba(38,53,74,.13)) drop-shadow(0 20px 20px rgba(38,53,74,.2));
-      transition: none;
-    }
-
-    .piece.placed {
-      position: absolute;
-      cursor: grab;
-      pointer-events: auto;
-      filter: none;
-    }
-
-    .piece-cell {
-      grid-column: calc(var(--x) + 1);
-      grid-row: calc(var(--y) + 1);
-      background: var(--color);
-      border: 4px solid rgba(38,53,74,.62);
-      border-radius: 13px;
-      box-shadow: inset 0 5px 0 rgba(255,255,255,.27), inset 0 -4px 0 rgba(0,0,0,.09);
-    }
-
+    .piece.dragging { position: fixed; z-index: 20; margin: 0; pointer-events: none; cursor: grabbing; transform: scale(1.07); filter: drop-shadow(0 12px 0 rgba(38,53,74,.13)) drop-shadow(0 20px 20px rgba(38,53,74,.2)); transition: none; }
+    .piece.placed { position: absolute; cursor: grab; pointer-events: auto; filter: none; }
+    .piece-cell { grid-column: calc(var(--x) + 1); grid-row: calc(var(--y) + 1); background: var(--color); border: 4px solid rgba(38,53,74,.62); border-radius: 13px; box-shadow: inset 0 5px 0 rgba(255,255,255,.27), inset 0 -4px 0 rgba(0,0,0,.09); }
     .board-wrap { position: relative; }
-
-    .board {
-      position: relative;
-      width: var(--board);
-      height: var(--board);
-      overflow: hidden;
-      border: 7px solid #344865;
-      border-radius: 24px;
-      background-color: #ffffff;
-      background-image:
-        linear-gradient(to right, var(--grid) 2px, transparent 2px),
-        linear-gradient(to bottom, var(--grid) 2px, transparent 2px);
-      background-size: var(--cell) var(--cell);
-      box-shadow: 0 10px 0 #c9d3df, 0 16px 22px rgba(38,53,74,.16);
-    }
-
-    .placed-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    .placed-layer .piece {
-      pointer-events: auto;
-      left: calc(var(--board-x) * var(--cell));
-      top: calc(var(--board-y) * var(--cell));
-    }
-
+    .board { position: relative; width: var(--board); height: var(--board); overflow: hidden; border: 7px solid #344865; border-radius: 24px; background-color: #fff; background-image: linear-gradient(to right, var(--grid) 2px, transparent 2px), linear-gradient(to bottom, var(--grid) 2px, transparent 2px); background-size: var(--cell) var(--cell); box-shadow: 0 10px 0 #c9d3df, 0 16px 22px rgba(38,53,74,.16); }
+    .placed-layer { position: absolute; inset: 0; pointer-events: none; }
+    .placed-layer .piece { pointer-events: auto; left: calc(var(--board-x) * var(--cell)); top: calc(var(--board-y) * var(--cell)); }
     footer { display: flex; justify-content: center; }
-
-    .reset, .again {
-      min-height: 60px;
-      padding: 10px 28px;
-      border: 0;
-      border-radius: 999px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .reset {
-      min-width: 180px;
-      background: #ffffff;
-      color: #344865;
-      font-size: clamp(19px, 2.4vw, 28px);
-      letter-spacing: .06em;
-      box-shadow: 0 5px 0 #c9d3df, 0 9px 15px rgba(38,53,74,.13);
-    }
-
-    .message {
-      position: fixed;
-      z-index: 40;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: rgba(248,245,237,.78);
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .25s ease, visibility .25s ease;
-    }
-
+    .reset, .again { min-height: 60px; padding: 10px 28px; border: 0; border-radius: 999px; font-weight: 800; cursor: pointer; }
+    .reset { min-width: 180px; background: #fff; color: #344865; font-size: clamp(19px, 2.4vw, 28px); letter-spacing: .06em; box-shadow: 0 5px 0 #c9d3df, 0 9px 15px rgba(38,53,74,.13); }
+    .message { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(248,245,237,.78); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s ease; }
     .message.show { opacity: 1; visibility: visible; }
-
-    .card {
-      width: min(560px, 90vw);
-      padding: 40px 28px 30px;
-      border-radius: 34px;
-      text-align: center;
-      background: #ffffff;
-      box-shadow: 0 16px 38px rgba(38,53,74,.24);
-      transform: scale(.88);
-      transition: transform .28s cubic-bezier(.2,.9,.3,1.3);
-    }
-
+    .card { width: min(560px, 90vw); padding: 40px 28px 30px; border-radius: 34px; text-align: center; background: #fff; box-shadow: 0 16px 38px rgba(38,53,74,.24); transform: scale(.88); transition: transform .28s cubic-bezier(.2,.9,.3,1.3); }
     .message.show .card { transform: scale(1); }
     .yay { margin: 0; font-size: clamp(44px, 8vw, 76px); }
     .stars-big { margin: 10px 0 22px; color: #ffbd2e; font-size: clamp(40px, 7vw, 70px); letter-spacing: .12em; }
-
-    .again {
-      min-height: 66px;
-      background: #4d96ff;
-      color: #ffffff;
-      font-size: 25px;
-      box-shadow: 0 5px 0 #2f70c7;
-    }
-
-    .confetti {
-      position: fixed;
-      z-index: 35;
-      top: -30px;
-      left: 0;
-      width: 13px;
-      height: 19px;
-      border-radius: 4px;
-      pointer-events: none;
-      animation: fall 1.7s ease-in forwards;
-    }
-
-    @keyframes fall {
-      from {
-        transform: translateX(var(--x)) translateY(0) rotate(0deg);
-        opacity: 1;
-      }
-      to {
-        transform: translateX(calc(var(--x) + var(--drift))) translateY(110vh) rotate(680deg);
-        opacity: 0;
-      }
-    }
-
-    @media (max-width: 700px) and (orientation: portrait) {
-      body { overflow: auto; }
-      .app { min-height: 100vh; }
-      .game { grid-template-columns: 1fr; gap: 18px; }
-      .tray { width: min(92vw, 500px); min-height: unset; flex-direction: row; margin: auto; }
-      .piece-slot { min-width: 0; transform: scale(.62); margin: calc(var(--cell) * -.2); }
-      .board-wrap { margin: auto; }
-    }
+    .again { min-height: 66px; background: #4d96ff; color: #fff; font-size: 25px; box-shadow: 0 5px 0 #2f70c7; }
+    .confetti { position: fixed; z-index: 35; top: -30px; left: 0; width: 13px; height: 19px; border-radius: 4px; pointer-events: none; animation: fall 1.7s ease-in forwards; }
+    @keyframes fall { from { transform: translateX(var(--x)) translateY(0) rotate(0deg); opacity: 1; } to { transform: translateX(calc(var(--x) + var(--drift))) translateY(110vh) rotate(680deg); opacity: 0; } }
+    @media (max-width: 700px) and (orientation: portrait) { body { overflow: auto; } .app { min-height: 100vh; } .game { grid-template-columns: 1fr; gap: 18px; } .tray { width: min(92vw, 500px); min-height: unset; flex-direction: row; margin: auto; } .piece-slot { min-width: 0; transform: scale(.62); margin: calc(var(--cell) * -.2); } .board-wrap { margin: auto; } }
   </style>
 </head>
 <body>
@@ -276,35 +62,16 @@
       <h1>かたちを はめよう！</h1>
       <div class="progress" aria-label="進みぐあい"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
     </header>
-
     <section class="game" aria-label="パズル">
       <div class="tray" id="tray" aria-label="ピース置き場"></div>
-      <div class="board-wrap">
-        <div class="board" id="board" aria-label="パズル盤面">
-          <div class="placed-layer" id="placedLayer"></div>
-        </div>
-      </div>
+      <div class="board-wrap"><div class="board" id="board" aria-label="パズル盤面"><div class="placed-layer" id="placedLayer"></div></div></div>
     </section>
-
     <footer><button class="reset" id="resetButton" type="button">↻ もういちど</button></footer>
   </main>
-
-  <div class="message" id="message" role="dialog" aria-modal="true" aria-label="クリア">
-    <div class="card">
-      <p class="yay">できた！</p>
-      <div class="stars-big">★★★</div>
-      <button class="again" id="againButton" type="button">もういちど</button>
-    </div>
-  </div>
+  <div class="message" id="message" role="dialog" aria-modal="true" aria-label="クリア"><div class="card"><p class="yay">できた！</p><div class="stars-big">★★★</div><button class="again" id="againButton" type="button">もういちど</button></div></div>
 
   <script>
-    /*
-      Ver.2: 盤面は白いまま。色付きの正解シルエットは表示しない。
-      ピースは空いている場所ならどこにでも置ける。
-      ただし、盤面外・他ピースとの重なりは不可。
-      3ピースがすべて正しい座標に置かれた時だけクリア。
-    */
-
+    /* Ver.2: 色ヒントなし。空いているマスなら任意の位置に仮置きできる。 */
     const BOARD_SIZE = 4;
     const PIECE_SIZES = [4, 5, 7];
     const COLORS = ['#ff6b6b', '#4d96ff', '#ffd93d'];
@@ -319,7 +86,6 @@
 
     let pieces = [];
     let active = null;
-    let placedCount = 0;
 
     const key = (x, y) => `${x},${y}`;
     const fromKey = value => value.split(',').map(Number);
@@ -358,17 +124,13 @@
     function width(cells) { return Math.max(...cells.map(([x]) => x)) + 1; }
     function height(cells) { return Math.max(...cells.map(([, y]) => y)) + 1; }
     function randomItem(items) { return items[Math.floor(Math.random() * items.length)]; }
-
-    function shapeSignature(cells) {
-      return normalize(cells).map(([x, y]) => `${x}:${y}`).join('|');
-    }
+    function shapeSignature(cells) { return normalize(cells).map(([x, y]) => `${x}:${y}`).join('|'); }
 
     function candidateCells(remaining, wantedSize, maxAttempts = 300) {
       const available = [...remaining].map(fromKey);
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         const start = randomItem(available);
         const selected = new Map([[cellKey(start), start]]);
-
         while (selected.size < wantedSize) {
           const frontier = [];
           selected.forEach(cell => {
@@ -381,14 +143,13 @@
           const next = randomItem(frontier);
           selected.set(cellKey(next), next);
         }
-
         const cells = [...selected.values()];
         if (cells.length === wantedSize && isConnected(cells)) return cells;
       }
       return null;
     }
 
-    function splitBoard() {
+    function generatePuzzle() {
       const fullBoard = new Set();
       for (let y = 0; y < BOARD_SIZE; y += 1) {
         for (let x = 0; x < BOARD_SIZE; x += 1) fullBoard.add(key(x, y));
@@ -446,23 +207,22 @@
     }
 
     function makePiece(piece) {
-      const el = document.createElement('div');
-      el.className = 'piece';
-      el.dataset.id = piece.id;
-      el.setAttribute('role', 'img');
-      el.setAttribute('aria-label', `${piece.name}のピース`);
-      el.style.setProperty('--w', piece.w);
-      el.style.setProperty('--h', piece.h);
-      el.style.setProperty('--color', piece.color);
-      buildCells(el, piece);
-      el.addEventListener('pointerdown', startDrag);
-      return el;
+      const element = document.createElement('div');
+      element.className = 'piece';
+      element.dataset.id = piece.id;
+      element.setAttribute('role', 'img');
+      element.setAttribute('aria-label', `${piece.name}のピース`);
+      element.style.setProperty('--w', piece.w);
+      element.style.setProperty('--h', piece.h);
+      element.style.setProperty('--color', piece.color);
+      buildCells(element, piece);
+      element.addEventListener('pointerdown', startDrag);
+      return element;
     }
 
     function render() {
       tray.innerHTML = '';
       placedLayer.innerHTML = '';
-
       pieces.forEach(piece => {
         const element = makePiece(piece);
         if (piece.placed) {
@@ -484,10 +244,13 @@
     function boardPositionFromElement(element) {
       const boardRect = board.getBoundingClientRect();
       const elementRect = element.getBoundingClientRect();
-      const cellSize = boardRect.width / BOARD_SIZE;
+      const border = 7;
+      const innerLeft = boardRect.left + border;
+      const innerTop = boardRect.top + border;
+      const cellSize = (boardRect.width - border * 2) / BOARD_SIZE;
       return {
-        x: Math.round((elementRect.left - boardRect.left) / cellSize),
-        y: Math.round((elementRect.top - boardRect.top) / cellSize)
+        x: Math.round((elementRect.left - innerLeft) / cellSize),
+        y: Math.round((elementRect.top - innerTop) / cellSize)
       };
     }
 
@@ -496,15 +259,15 @@
     }
 
     function canPlace(piece, position) {
-      const candidateCells = cellsAt(piece, position);
-      if (candidateCells.some(([x, y]) => x < 0 || y < 0 || x >= BOARD_SIZE || y >= BOARD_SIZE)) return false;
+      const proposedCells = cellsAt(piece, position);
+      if (proposedCells.some(([x, y]) => x < 0 || y < 0 || x >= BOARD_SIZE || y >= BOARD_SIZE)) return false;
 
       const occupied = new Set();
       pieces.forEach(other => {
         if (other.id === piece.id || !other.placed) return;
         cellsAt(other, other.placed).forEach(([x, y]) => occupied.add(key(x, y)));
       });
-      return !candidateCells.some(([x, y]) => occupied.has(key(x, y)));
+      return !proposedCells.some(([x, y]) => occupied.has(key(x, y)));
     }
 
     function isCorrect(piece) {
@@ -514,9 +277,7 @@
     function updateProgressAndCompletion() {
       const correctCount = pieces.filter(isCorrect).length;
       stars.forEach((star, index) => star.classList.toggle('on', index < correctCount));
-      if (correctCount === pieces.length) {
-        window.setTimeout(complete, 250);
-      }
+      if (correctCount === pieces.length) window.setTimeout(complete, 250);
     }
 
     function startDrag(event) {
@@ -528,11 +289,9 @@
       const rect = element.getBoundingClientRect();
       const wasPlaced = Boolean(piece.placed);
       const previousPosition = piece.placed ? { ...piece.placed } : null;
-
       active = {
         element,
         piece,
-        home: element.parentElement,
         offsetX: event.clientX - rect.left,
         offsetY: event.clientY - rect.top,
         pointerId: event.pointerId,
@@ -540,14 +299,12 @@
         previousPosition
       };
 
-      // 自分自身を一度盤面の占有判定から外す。移動先判定では他の2ピースだけを確認する。
       piece.placed = null;
       try { element.setPointerCapture(event.pointerId); } catch (_) {}
       element.classList.remove('placed');
       element.classList.add('dragging');
       document.body.appendChild(element);
       movePiece(event);
-
       window.addEventListener('pointermove', movePiece);
       window.addEventListener('pointerup', endDrag, { once: true });
       window.addEventListener('pointercancel', cancelDrag, { once: true });
@@ -566,15 +323,17 @@
 
     function endDrag(event) {
       if (!active || event.pointerId !== active.pointerId) return;
-      const { element, piece, home, wasPlaced, previousPosition } = active;
-      cleanDragListeners();
-      element.classList.remove('dragging');
-      element.style.left = '';
-      element.style.top = '';
+      const { element, piece, wasPlaced, previousPosition } = active;
 
-      const rect = board.getBoundingClientRect();
-      const isOverBoard = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      // left/top を消す前、すなわち実際に離した位置のままで盤面座標を計算する。
       const position = boardPositionFromElement(element);
+      const boardRect = board.getBoundingClientRect();
+      const pieceRect = element.getBoundingClientRect();
+      const centerX = pieceRect.left + pieceRect.width / 2;
+      const centerY = pieceRect.top + pieceRect.height / 2;
+      const isOverBoard = centerX >= boardRect.left && centerX <= boardRect.right && centerY >= boardRect.top && centerY <= boardRect.bottom;
+
+      cleanDragListeners();
 
       if (isOverBoard && canPlace(piece, position)) {
         piece.placed = position;
@@ -622,16 +381,14 @@
     function reset() {
       if (active) cancelDrag();
       message.classList.remove('show');
-      placedCount = 0;
       stars.forEach(star => star.classList.remove('on'));
-      pieces = splitBoard();
+      pieces = generatePuzzle();
       console.log('新しい問題:', pieces);
       render();
     }
 
     document.getElementById('resetButton').addEventListener('click', reset);
     document.getElementById('againButton').addEventListener('click', reset);
-
     reset();
   </script>
 </body>
