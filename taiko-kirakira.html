@@ -75,56 +75,55 @@
     let isMusicPlaying = false;
     let musicStartTime = 0;
 
-    // きらきら星のメロディ（周波数 Hz、秒）
-    // C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392.00, A4=440.00, B4=493.88, C5=523.25
+    // きらきら星のメロディ（1 音の長さを 1 秒に）
     const melody = [
-      {note: 'C4', freq: 261.63, start: 0.0, duration: 0.5},
-      {note: 'C4', freq: 261.63, start: 0.5, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 1.0, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 1.5, duration: 0.5},
-      {note: 'A4', freq: 440.00, start: 2.0, duration: 0.5},
-      {note: 'A4', freq: 440.00, start: 2.5, duration: 0.5},
+      {note: 'C4', freq: 261.63, start: 0.0, duration: 1.0},
+      {note: 'C4', freq: 261.63, start: 1.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 2.0, duration: 1.0},
       {note: 'G4', freq: 392.00, start: 3.0, duration: 1.0},
+      {note: 'A4', freq: 440.00, start: 4.0, duration: 1.0},
+      {note: 'A4', freq: 440.00, start: 5.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 6.0, duration: 2.0},
       
-      {note: 'F4', freq: 349.23, start: 4.0, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 4.5, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 5.0, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 5.5, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 6.0, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 6.5, duration: 0.5},
-      {note: 'C4', freq: 261.63, start: 7.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 8.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 9.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 10.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 11.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 12.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 13.0, duration: 1.0},
+      {note: 'C4', freq: 261.63, start: 14.0, duration: 2.0},
       
-      {note: 'G4', freq: 392.00, start: 8.0, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 8.5, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 9.0, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 9.5, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 10.0, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 10.5, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 11.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 16.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 17.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 18.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 19.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 20.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 21.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 22.0, duration: 2.0},
       
-      {note: 'G4', freq: 392.00, start: 12.0, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 12.5, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 13.0, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 13.5, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 14.0, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 14.5, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 15.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 24.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 25.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 26.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 27.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 28.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 29.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 30.0, duration: 2.0},
       
-      {note: 'C4', freq: 261.63, start: 16.0, duration: 0.5},
-      {note: 'C4', freq: 261.63, start: 16.5, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 17.0, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 17.5, duration: 0.5},
-      {note: 'A4', freq: 440.00, start: 18.0, duration: 0.5},
-      {note: 'A4', freq: 440.00, start: 18.5, duration: 0.5},
-      {note: 'G4', freq: 392.00, start: 19.0, duration: 1.0},
+      {note: 'C4', freq: 261.63, start: 32.0, duration: 1.0},
+      {note: 'C4', freq: 261.63, start: 33.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 34.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 35.0, duration: 1.0},
+      {note: 'A4', freq: 440.00, start: 36.0, duration: 1.0},
+      {note: 'A4', freq: 440.00, start: 37.0, duration: 1.0},
+      {note: 'G4', freq: 392.00, start: 38.0, duration: 2.0},
       
-      {note: 'F4', freq: 349.23, start: 20.0, duration: 0.5},
-      {note: 'F4', freq: 349.23, start: 20.5, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 21.0, duration: 0.5},
-      {note: 'E4', freq: 329.63, start: 21.5, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 22.0, duration: 0.5},
-      {note: 'D4', freq: 293.66, start: 22.5, duration: 0.5},
-      {note: 'C4', freq: 261.63, start: 23.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 40.0, duration: 1.0},
+      {note: 'F4', freq: 349.23, start: 41.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 42.0, duration: 1.0},
+      {note: 'E4', freq: 329.63, start: 43.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 44.0, duration: 1.0},
+      {note: 'D4', freq: 293.66, start: 45.0, duration: 1.0},
+      {note: 'C4', freq: 261.63, start: 46.0, duration: 2.0},
     ];
 
     // 音符を鳴らす関数
@@ -187,7 +186,7 @@
     let score = 0;
     let isPlaying = false;
     let notes = [];
-    let noteSpeed = 2;
+    let noteSpeed = 1.0; // さらにゆっくり
     let lastSpawnTime = 0;
     let noteIndex = 0;
 
@@ -196,7 +195,7 @@
     const taikoY = canvas.height - 80;
     const taikoRadius = 60;
 
-    // 音符のレーン（メロディに合わせて配置）
+    // 音符のレーン
     const lanes = [
       canvas.width * 0.2,
       canvas.width * 0.4,
@@ -204,10 +203,14 @@
       canvas.width * 0.8
     ];
 
-    // ノートの色
-    const noteColors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+    // 音符のレーンごとの色
+    const laneColors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+    
+    // 判定ゾーン
+    const hitZoneTop = taikoY - 100;
+    const hitZoneBottom = taikoY + 50;
 
-    // 音符の画像（簡易版）
+    // 音符の描画
     function drawNote(x, y, color) {
       ctx.beginPath();
       ctx.arc(x, y, 25, 0, Math.PI * 2);
@@ -231,6 +234,26 @@
       ctx.quadraticCurveTo(x + 50, y - 35, x + 35, y - 25);
       ctx.fillStyle = '#333';
       ctx.fill();
+    }
+
+    // 判定ゾーンの描画
+    function drawHitZone() {
+      lanes.forEach((laneX, index) => {
+        // 判定ゾーンの背景（半透明）
+        ctx.fillStyle = `rgba(${255 - index * 30}, 150, 150, 0.3)`;
+        ctx.fillRect(laneX - 40, hitZoneTop, 80, hitZoneBottom - hitZoneTop);
+        
+        // 枠線
+        ctx.strokeStyle = `rgba(${255 - index * 30}, 100, 100, 0.6)`;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(laneX - 40, hitZoneTop, 80, hitZoneBottom - hitZoneTop);
+        
+        // 「たたこう！」の文字
+        ctx.fillStyle = `rgba(${255 - index * 30}, 80, 80, 0.8)`;
+        ctx.font = 'bold 16px Hiragino Kaku Gothic Pro';
+        ctx.textAlign = 'center';
+        ctx.fillText('たたこう！', laneX, hitZoneTop + 25);
+      });
     }
 
     // 太鼓の描画
@@ -269,14 +292,14 @@
       ctx.fill();
     }
 
-    // ノート生成（メロディに合わせて）
+    // ノート生成
     function spawnNote() {
       if (noteIndex >= melody.length) return;
       
       const item = melody[noteIndex];
       const laneIndex = noteIndex % 4;
       const x = lanes[laneIndex];
-      const color = noteColors[laneIndex];
+      const color = laneColors[laneIndex];
       
       notes.push({ 
         x, 
@@ -293,27 +316,18 @@
     function updateNotes(deltaTime) {
       const now = Date.now();
       
-      // メロディのタイミングでノートを生成
       if (isMusicPlaying && audioContext) {
         const elapsedTime = audioContext.currentTime - musicStartTime;
         
         if (noteIndex < melody.length) {
           const nextNote = melody[noteIndex];
-          if (elapsedTime >= nextNote.start - 2.0) { // 2 秒前に生成
+          if (elapsedTime >= nextNote.start - 3.0) { // 3 秒前に生成
             spawnNote();
           }
         }
-      } else if (now - lastSpawnTime > spawnInterval) {
-        // 音楽がない場合のフォールバック
+      } else if (now - lastSpawnTime > 2500) {
         spawnNote();
         lastSpawnTime = now;
-        
-        if (spawnInterval > 800) {
-          spawnInterval -= 50;
-        }
-        if (noteSpeed < 4) {
-          noteSpeed += 0.1;
-        }
       }
 
       notes.forEach(note => {
@@ -345,7 +359,7 @@
           const dy = y - note.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           
-          if (distance < 80 && note.y > taikoY - 100 && note.y < taikoY + 50) {
+          if (distance < 100 && note.y > hitZoneTop && note.y < hitZoneBottom) {
             note.active = false;
             score++;
             scoreDisplay.textContent = `⭐ ${score} ⭐`;
@@ -361,7 +375,7 @@
     // ヒットエフェクト
     let hitEffects = [];
     function createHitEffect(x, y) {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 12; i++) {
         hitEffects.push({
           x, y,
           vx: (Math.random() - 0.5) * 10,
@@ -390,7 +404,6 @@
     }
 
     // ゲームループ
-    let taikoY_temp = taikoY;
     let lastTime = 0;
 
     function gameLoop(timestamp) {
@@ -401,6 +414,8 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      drawHitZone();
+      
       updateNotes(deltaTime);
       
       drawTaiko();
@@ -434,12 +449,10 @@
         isPlaying = true;
         startBtn.textContent = '⏸️ やめる';
         
-        // AudioContext の初期化
         if (!audioContext) {
           audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         
-        // 音楽を再生
         playMusic();
         
         lastTime = performance.now();
@@ -452,8 +465,7 @@
         notes = [];
         score = 0;
         scoreDisplay.textContent = '⭐ 0 ⭐';
-        spawnInterval = 1500;
-        noteSpeed = 2;
+        noteSpeed = 1.0;
         noteIndex = 0;
         
         if (audioContext) {
@@ -464,6 +476,7 @@
     });
 
     // 初期描画
+    drawHitZone();
     drawTaiko();
   </script>
 </body>
