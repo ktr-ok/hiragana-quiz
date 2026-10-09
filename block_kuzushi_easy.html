@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>かわいいブロックくずし</title>
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Comic Sans MS', 'Hiragino Maru Gothic Pro', sans-serif;
+    touch-action: none;
+  }
+  #gameContainer {
+    position: relative;
+  }
+  canvas {
+    background: linear-gradient(180deg, #fff9e6 0%, #ffe6f2 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    max-width: 100%;
+    max-height: 100vh;
+  }
+  #title {
+    text-align: center;
+    color: white;
+    font-size: 24px;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <div id="title">🌟 かわいいブロックくずし 🌟</div>
+  <canvas id="game"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// 画面サイズに合わせる
+function resizeCanvas() {
+  const maxWidth = Math.min(window.innerWidth * 0.95, 500);
+  const maxHeight = Math.min(window.innerHeight * 0.75, 450);
+  const aspect = 4 / 3;
+  
+  let width = maxWidth;
+  let height = width / aspect;
+  
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = height * aspect;
+  }
+  
+  canvas.width = width;
+  canvas.height = height;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ゲーム設定
+let paddleWidth, paddleHeight, ballRadius;
+let brickRowCount = 3;
+let brickColumnCount = 5;
+let brickWidth, brickHeight, brickPadding, brickOffsetTop, brickOffsetLeft;
+
+// かわいい色パレット
+const colors = {
+  paddle: '#FF6B9D',
+  ball: '#FFD93D',
+  ballOutline: '#FF8C00',
+  bricks: ['#FF9A9E', '#A8E6CF', '#DCEDC8', '#FFD3B6', '#D4FC79'],
+  background: '#FFF9E6'
+};
+
+function initSettings() {
+  paddleWidth = canvas.width * 0.6; // もっと大きく
+  paddleHeight = canvas.height * 0.06;
+  ballRadius = canvas.width * 0.025;
+  
+  brickWidth = (canvas.width - 60) / brickColumnCount;
+  brickHeight = canvas.height * 0.06;
+  brickPadding = 6;
+  brickOffsetTop = canvas.height * 0.12;
+  brickOffsetLeft = 30;
+}
+initSettings();
+
+// 自機（パドル）
+let paddleX = (canvas.width - paddleWidth) / 2;
+
+// ボール（ゆっくり）
+let ballX = canvas.width / 2;
+let ballY = canvas.height * 0.7;
+let ballSpeedX = canvas.width * 0.008; // とても遅く
+let ballSpeedY = -canvas.width * 0.008;
+
+// ブロック
+let bricks = [];
+function initBricks() {
+  bricks = [];
+  for (let c = 0; c < brickColumnCount; c++) {
+    bricks[c] = [];
+    for (let r = 0; r < brickRowCount; r++) {
+      bricks[c][r] = { x: 0, y: 0, status: 1 };
+    }
+  }
+}
+initBricks();
+
+// スコア
+let score = 0;
+let highScore = 0;
+
+// キー入力
+let rightPressed = false;
+let leftPressed = false;
+
+document.addEventListener('keydown', keyDownHandler);
+document.addEventListener('keyup', keyUpHandler);
+
+function keyDownHandler(e) {
+  if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = true;
+  if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = true;
+}
+
+function keyUpHandler(e) {
+  if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = false;
+  if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = false;
+}
+
+// タッチ操作
+let paddleTouchOffset = 0;
+
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const touchX = touch.clientX - rect.left;
+  
+  if (touchX >= paddleX && touchX <= paddleX + paddleWidth) {
+    paddleTouchOffset = touchX - paddleX;
+  } else {
+    paddleTouchOffset = paddleWidth / 2;
+  }
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const touchX = touch.clientX - rect.left;
+  
+  paddleX = touchX - paddleTouchOffset;
+  
+  if (paddleX < 0) paddleX = 0;
+  if (paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth;
+}
+
+// 衝突判定
+function collisionDetection() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      const b = bricks[c][r];
+      if (b.status === 1) {
+        if (
+          ballX > b.x &&
+          ballX < b.x + brickWidth &&
+          ballY > b.y &&
+          ballY < b.y + brickHeight
+        ) {
+          ballSpeedY = -ballSpeedY;
+          b.status = 0;
+          score++;
+          if (score === brickRowCount * brickColumnCount) {
+            setTimeout(() => {
+              alert('🎉 クリア！すごいね！ 🎉');
+              resetGame();
+            }, 100);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ゲームリセット
+function resetGame() {
+  initBricks();
+  score = 0;
+  ballX = canvas.width / 2;
+  ballY = canvas.height * 0.7;
+  ballSpeedX = canvas.width * 0.008;
+  ballSpeedY = -canvas.width * 0.008;
+  paddleX = (canvas.width - paddleWidth) / 2;
+}
+
+// かわいいボール描画（顔つき）
+function drawBall() {
+  // 本体
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+  ctx.fillStyle = colors.ball;
+  ctx.fill();
+  ctx.strokeStyle = colors.ballOutline;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.closePath();
+  
+  // 目
+  const eyeOffset = ballRadius * 0.3;
+  const eyeSize = ballRadius * 0.2;
+  
+  // 左目
+  ctx.beginPath();
+  ctx.arc(ballX - eyeOffset, ballY - eyeOffset * 0.5, eyeSize, 0, Math.PI * 2);
+  ctx.fillStyle = '#333';
+  ctx.fill();
+  ctx.closePath();
+  
+  // 右目
+  ctx.beginPath();
+  ctx.arc(ballX + eyeOffset, ballY - eyeOffset * 0.5, eyeSize, 0, Math.PI * 2);
+  ctx.fillStyle = '#333';
+  ctx.fill();
+  ctx.closePath();
+  
+  // ほっぺ
+  ctx.beginPath();
+  ctx.arc(ballX - eyeOffset * 0.8, ballY + eyeOffset * 0.3, eyeSize * 0.6, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFB6C1';
+  ctx.fill();
+  ctx.closePath();
+  
+  ctx.beginPath();
+  ctx.arc(ballX + eyeOffset * 0.8, ballY + eyeOffset * 0.3, eyeSize * 0.6, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFB6C1';
+  ctx.fill();
+  ctx.closePath();
+}
+
+// かわいいパドル描画
+function drawPaddle() {
+  ctx.beginPath();
+  ctx.roundRect(paddleX, canvas.height - paddleHeight - 5, paddleWidth, paddleHeight, 12);
+  ctx.fillStyle = colors.paddle;
+  ctx.fill();
+  
+  // パドルの模様（ハート）
+  const heartCount = Math.floor(paddleWidth / 30);
+  for (let i = 0; i < heartCount; i++) {
+    const hx = paddleX + 20 + i * 30;
+    const hy = canvas.height - paddleHeight / 2 - 5;
+    drawHeart(hx, hy, 6, '#FFF');
+  }
+  
+  ctx.closePath();
+}
+
+// ハート描画
+function drawHeart(x, y, size, color) {
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.bezierCurveTo(x - size, y - size, x - size * 2, y + size * 0.5, x, y + size * 1.5);
+  ctx.bezierCurveTo(x + size * 2, y + size * 0.5, x + size, y - size, x, y);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.closePath();
+}
+
+// かわいいブロック描画
+function drawBricks() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      if (bricks[c][r].status === 1) {
+        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+        
+        ctx.beginPath();
+        ctx.roundRect(brickX, brickY, brickWidth, brickHeight, 6);
+        ctx.fillStyle = colors.bricks[r % colors.bricks.length];
+        ctx.fill();
+        
+        // ブロックの模様（星）
+        if ((c + r) % 2 === 0) {
+          drawStar(brickX + brickWidth / 2, brickY + brickHeight / 2, 5, 4, '#FFF');
+        }
+        ctx.closePath();
+      }
+    }
+  }
+}
+
+// 星描画
+function drawStar(x, y, outerRadius, innerRadius, color) {
+  const spikes = 5;
+  let rot = Math.PI / 2 * 3;
+  let cx = x;
+  let cy = y;
+  let step = Math.PI / spikes;
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    cx = x + Math.cos(rot) * outerRadius;
+    cy = y + Math.sin(rot) * outerRadius;
+    ctx.lineTo(cx, cy);
+    rot += step;
+
+    cx = x + Math.cos(rot) * innerRadius;
+    cy = y + Math.sin(rot) * innerRadius;
+    ctx.lineTo(cx, cy);
+    rot += step;
+  }
+  ctx.lineTo(x, y - outerRadius);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// スコア表示
+function drawScore() {
+  ctx.font = `bold ${canvas.height * 0.05}px 'Comic Sans MS', sans-serif`;
+  ctx.fillStyle = '#FF6B9D';
+  ctx.fillText('🌸 ブロック: ' + score, canvas.width * 0.02, canvas.height * 0.07);
+  
+  ctx.fillStyle = '#9B59B6';
+  ctx.fillText('🏆 ベスト: ' + highScore, canvas.width * 0.02, canvas.height * 0.11);
+}
+
+// ゲームループ
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBricks();
+  drawBall();
+  drawPaddle();
+  drawScore();
+  collisionDetection();
+
+  // ボールの移動
+  ballX += ballSpeedX;
+  ballY += ballSpeedY;
+
+  // 壁との衝突
+  if (ballX + ballSpeedX > canvas.width - ballRadius || ballX + ballSpeedX < ballRadius) {
+    ballSpeedX = -ballSpeedX;
+  }
+  if (ballY + ballSpeedY < ballRadius) {
+    ballSpeedY = -ballSpeedY;
+  } else if (ballY + ballSpeedY > canvas.height - ballRadius - paddleHeight - 5) {
+    if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+      ballSpeedY = -ballSpeedY;
+      // スピードアップを抑制（子供向け）
+      ballSpeedX = ballSpeedX * 1.01;
+      ballSpeedY = ballSpeedY * 1.01;
+    } else if (ballY + ballSpeedY > canvas.height - ballRadius) {
+      if (score > highScore) highScore = score;
+      setTimeout(() => {
+        alert('💖 がんばったね！もういっかい！ 💖');
+        resetGame();
+      }, 100);
+    }
+  }
+
+  // パドルの移動
+  if (rightPressed && paddleX < canvas.width - paddleWidth) {
+    paddleX += canvas.width * 0.015;
+  } else if (leftPressed && paddleX > 0) {
+    paddleX -= canvas.width * 0.015;
+  }
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
