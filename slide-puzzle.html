@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>スライド＆ライズ</title>
+<style>
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101728; color: #f1f5ff; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 14px; }
+main { width: min(100%, 610px); }
+h1 { margin: 0 0 8px; font-size: 1.45rem; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+button { color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; background: #3d6be0; font-size: 1rem; cursor: pointer; }
+button:focus-visible, canvas:focus-visible { outline: 3px solid #ffda6a; outline-offset: 3px; }
+button:disabled { opacity: .5; cursor: default; }
+#status { min-height: 2.7em; line-height: 1.4; margin: 8px 0; }
+#board { display: block; width: 100%; max-width: 520px; height: auto; aspect-ratio: 8 / 10; margin: 0 auto; border: 2px solid #94a9d2; border-radius: 8px; background: #1c2941; touch-action: none; user-select: none; cursor: grab; }
+#board:active { cursor: grabbing; }
+.controls { margin: 10px 0; display: flex; gap: 10px; justify-content: center; }
+.controls button { min-width: 86px; }
+small { color: #c1cce2; display: block; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+<header><h1>スライド＆ライズ</h1><button id="restart">最初から</button></header>
+<div id="status" role="status" aria-live="polite"></div>
+<canvas id="board" width="480" height="600" tabindex="0" aria-label="ブロック盤面。ブロックを指またはマウスで左右に動かす"></canvas>
+<div class="controls"><button id="left" aria-label="選択したブロックを左へ">← 左へ</button><button id="right" aria-label="選択したブロックを右へ">右へ →</button></div>
+<small>ブロックを横にドラッグして離すと1手。タップで選択して左右ボタン／矢印キーでも操作できます。1手ごとに新しい行が下からせり上がります。消える行は光り、ブロックは横長のまま落ちます。</small>
+</main>
+<script>
+(() => {
+  'use strict';
+  const W = 8, H = 10, SIZE = 60;
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const status = document.getElementById('status');
+  const leftButton = document.getElementById('left');
+  const rightButton = document.getElementById('right');
+  const palette = ['#67c7f4', '#ffbd69', '#8ee2a0', '#e294ee', '#ff898c'];
+  const durations = { move: 180, fallPerCell: 145, clear: 560, rise: 300 };
+  let pieces, nextId, turns, points, combo, selected, drag, over, busy;
+  let generation = 0;
+  const rand = n => Math.floor(Math.random() * n);
+  const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const ease = t => 1 - Math.pow(1 - t, 3);
+
+  function add(x, y, len) {
+    pieces.push({ id: nextId++, x, y, len, color: palette[rand(palette.length)] });
+  }
+  function occupied(ignore = -1) {
+    const grid = Array.from({ length: H }, () => Array(W).fill(null));
+    for (const p of pieces) {
+      if (p.id === ignore) continue;
+      if (p.y < 0 || p.y >= H) continue;
+      for (let x = p.x; x < p.x + p.len; x++) grid[p.y][x] = p.id;
+    }
+    return grid;
+  }
+  function makeRow(y) {
+    let x = 0;
+    while (x < W) {
+      if (Math.random() < 0.28) { x++; continue; }
+      const len = 1 + rand(Math.min(4, W - x));
+      add(x, y, len);
+      x += len;
+    }
+  }
+  function setBusy(value) {
+    busy = value;
+    leftButton.disabled = value || over;
+    rightButton.disabled = value || over;
+    updateStatus();
+  }
+  function updateStatus(message = '') {
+    status.textContent = `手数: ${turns}　得点: ${points}${message ? `　${message}` : combo ? `　${combo}連鎖！` : ''}${over ? '　最初から、でもう一度' : ''}`;
+  }
+  function init() {
+    generation++;
+    pieces = []; nextId = 1; turns = 0; points = 0; combo = 0;
+    selected = null; drag = null; over = false;
+    makeRow(H - 1);
+    makeRow(H - 2);
+    // 初期配置だけはアニメーションなしで底まで落とす。
+    settleInstant();
+    setBusy(false);
+    draw();
+  }
+  function settleInstant() {
+    let moved;
+    do {
+      moved = false;
+      for (const p of [...pieces].sort((a, b) => b.y - a.y || a.id - b.id)) {
+        if (p.y >= H - 1) continue;
+        const grid = occupied(p.id);
+        if (Array.from({ length: p.len }, (_, i) => grid[p.y + 1][p.x + i]).every(v => v === null)) {
+          p.y++; moved = true;
+        }
+      }
+    } while (moved);
+  }
+  function draw(overrides = new Map(), flash = null) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#1c2941'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#354663'; ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x++) {
+      ctx.beginPath(); ctx.moveTo(x * SIZE + .5, 0); ctx.lineTo(x * SIZE + .5, H * SIZE); ctx.stroke();
+    }
+    for (let y = 0; y <= H; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y * SIZE + .5); ctx.lineTo(W * SIZE, y * SIZE + .5); ctx.stroke();
+    }
+    for (const p of pieces) {
+      const v = overrides.get(p.id) || p;
+      if (v.y < -1 || v.y >= H) continue;
+      const x = v.x * SIZE + 3, y = v.y * SIZE + 3;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.roundRect(x, y, p.len * SIZE - 6, SIZE - 6, 9); ctx.fill();
+      if (p.id === selected) {
+        ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.fillRect(x + 10, y + 9, Math.max(10, p.len * SIZE - 26), 5);
+    }
+    if (flash) {
+      const { rows, intensity } = flash;
+      for (const row of rows) {
+        ctx.fillStyle = `rgba(255, 240, 145, ${.12 + intensity * .7})`;
+        ctx.fillRect(0, row * SIZE, W * SIZE, SIZE);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${.3 + intensity * .7})`;
+        ctx.strokeRect(2, row * SIZE + 2, W * SIZE - 4, SIZE - 4);
+      }
+    }
+    if (over) {
+      ctx.fillStyle = 'rgba(10,14,30,.78)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 38px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText('ゲームオーバー', canvas.width / 2, canvas.height / 2);
+    }
+  }
+  function animate(duration, paint, token) {
+    return new Promise(resolve => {
+      const start = performance.now();
+      function frame(now) {
+        if (token !== generation) { resolve(false); return; }
+        const t = Math.min(1, (now - start) / duration);
+        paint(t);
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve(true);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+  async function animatePositions(targets, duration, token) {
+    if (!targets.length) return true;
+    const ok = await animate(duration, t => {
+      const view = new Map();
+      for (const { p, x, y } of targets) {
+        view.set(p.id, { x: p.x + (x - p.x) * ease(t), y: p.y + (y - p.y) * ease(t) });
+      }
+      draw(view);
+    }, token);
+    if (!ok) return false;
+    for (const { p, x, y } of targets) { p.x = x; p.y = y; }
+    draw();
+    return true;
+  }
+  function fallTargets() {
+    // 下側のブロックから順番に確定。横長ブロックは全マスの真下が空のときだけ一体で落ちる。
+    const grid = occupied();
+    const positions = new Map();
+    for (const p of [...pieces].sort((a, b) => b.y - a.y || a.id - b.id)) {
+      let y = p.y;
+      while (y < H - 1 && Array.from({ length: p.len }, (_, i) => grid[y + 1][p.x + i]).every(v => v === null)) {
+        for (let x = p.x; x < p.x + p.len; x++) {
+          if (y >= 0) grid[y][x] = null;
+          grid[y + 1][x] = p.id;
+        }
+        y++;
+      }
+      if (y !== p.y) positions.set(p.id, y);
+    }
+    return pieces.filter(p => positions.has(p.id)).map(p => ({ p, x: p.x, y: positions.get(p.id) }));
+  }
+  function fullRows() {
+    const grid = occupied();
+    return Array.from({ length: H }, (_, y) => y).filter(y => grid[y].every(v => v !== null));
+  }
+  async function settleAnimated(token) {
+    let chain = 0;
+    while (token === generation) {
+      const falls = fallTargets();
+      if (falls.length) {
+        updateStatus('落下中…');
+        const distance = Math.max(...falls.map(a => Math.abs(a.y - a.p.y)));
+        if (!await animatePositions(falls, Math.min(850, Math.max(180, distance * durations.fallPerCell)), token)) return;
+        await delay(120);
+        if (token !== generation) return;
+      }
+      const rows = fullRows();
+      if (!rows.length) break;
+      chain++;
+      updateStatus(`${chain}連鎖！ ${rows.length}行消去`);
+      if (!await animate(durations.clear, t => draw(new Map(), { rows, intensity: .5 + .5 * Math.sin(t * Math.PI * 6) }), token)) return;
+      const cleared = new Set(rows);
+      pieces = pieces.filter(p => !cleared.has(p.y));
+      if (selected != null && !pieces.some(p => p.id === selected)) selected = null;
+      points += rows.length * 100 * chain;
+      draw();
+      await delay(150);
+    }
+    combo = chain;
+    updateStatus();
+  }
+  async function riseAnimated(token) {
+    if (token !== generation) return;
+    makeRow(H);
+    updateStatus('下からせり上がり…');
+    const targets = pieces.map(p => ({ p, x: p.x, y: p.y - 1 }));
+    if (!await animatePositions(targets, durations.rise, token)) return;
+    over = pieces.some(p => p.y < 0);
+    draw();
+    if (over) { setBusy(false); return; }
+    await delay(120);
+    if (token !== generation) return;
+    await settleAnimated(token);
+    if (token === generation) { setBusy(false); draw(); }
+  }
+  async function shift(p, desired) {
+    if (busy || over || !p || p.y < 0) return false;
+    const grid = occupied(p.id);
+    const step = Math.sign(desired - p.x);
+    let destination = p.x;
+    while (destination !== desired) {
+      const x = destination + step;
+      if (x < 0 || x + p.len > W) break;
+      if (Array.from({ length: p.len }, (_, i) => grid[p.y][x + i]).some(v => v !== null)) break;
+      destination = x;
+    }
+    if (destination === p.x) return false;
+    setBusy(true);
+    const token = generation;
+    selected = p.id;
+    turns++;
+    updateStatus('移動中…');
+    if (!await animatePositions([{ p, x: destination, y: p.y }], durations.move, token)) return false;
+    await settleAnimated(token);
+    if (token !== generation) return false;
+    await riseAnimated(token);
+    return true;
+  }
+  function pieceAt(px, py) {
+    const x = Math.floor(px / SIZE), y = Math.floor(py / SIZE);
+    if (x < 0 || x >= W || y < 0 || y >= H) return null;
+    return pieces.find(p => p.y === y && x >= p.x && x < p.x + p.len) || null;
+  }
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+  }
+  canvas.addEventListener('pointerdown', e => {
+    if (busy || over || drag) return;
+    const p = pos(e), target = pieceAt(p.x, p.y);
+    selected = target?.id ?? null;
+    if (target) {
+      drag = { pointerId: e.pointerId, id: target.id, startX: p.x, fromX: target.x };
+      canvas.setPointerCapture(e.pointerId);
+    }
+    draw();
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const p = pos(e), d = drag;
+    drag = null;
+    const delta = Math.round((p.x - d.startX) / SIZE);
+    const target = pieces.find(q => q.id === d.id);
+    if (delta) void shift(target, d.fromX + delta);
+    else draw();
+  });
+  canvas.addEventListener('pointercancel', () => { drag = null; draw(); });
+  function moveSelection(direction) {
+    const target = pieces.find(p => p.id === selected);
+    if (target) void shift(target, target.x + direction);
+  }
+  leftButton.addEventListener('click', () => moveSelection(-1));
+  rightButton.addEventListener('click', () => moveSelection(1));
+  document.getElementById('restart').addEventListener('click', init);
+  canvas.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault(); moveSelection(e.key === 'ArrowLeft' ? -1 : 1);
+    }
+  });
+  init();
+})();
+</script>
+</body>
+</html>
